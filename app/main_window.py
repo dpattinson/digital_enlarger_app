@@ -88,12 +88,12 @@ class MainWindow(QMainWindow):
     def update_processing_summary(self, text):
         self.processing_summary_label.setText(f"Processing Summary: {text}")
 
-    def populate_lut_combo(self, lut_files):
-        self.lut_combo.clear()
-        if not lut_files:
-            self.lut_combo.addItem("No LUTs Found")
-        else:
-            self.lut_combo.addItems(lut_files)
+    #def populate_lut_combo(self, lut_files):
+    #    self.lut_combo.clear()
+    #    if not lut_files:
+    #        self.lut_combo.addItem("No LUTs Found")
+    #    else:
+    #        self.lut_combo.addItems(lut_files)
 
     def get_lut_file(self):
         file_dialog = QFileDialog()
