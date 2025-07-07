@@ -12,7 +12,7 @@ class Controller:
         self.display_window = DisplayWindow()
 
         self.connect_signals()
-        self.populate_luts()
+        #self.populate_luts()
 
         self.current_image_path = None
         self.loaded_image = None
@@ -24,9 +24,9 @@ class Controller:
         self.main_window.print_button.clicked.connect(self.start_print)
         self.main_window.stop_button.clicked.connect(self.stop_print)
 
-    def populate_luts(self):
-        lut_names = self.lut_manager.get_lut_names()
-        self.main_window.populate_lut_combo(lut_names)
+    #def populate_luts(self):
+    #    lut_names = self.lut_manager.get_lut_names()
+    #    self.main_window.populate_lut_combo(lut_names)
 
     def select_image(self):
         file_path = self.main_window.get_image_file()
