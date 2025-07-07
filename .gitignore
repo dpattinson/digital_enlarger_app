@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+virtualenv/
+venv/
+*.log
+*.tif
+*.tiff
+
+
