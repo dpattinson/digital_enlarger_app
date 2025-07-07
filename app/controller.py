@@ -40,18 +40,18 @@ class Controller:
                 self.main_window.update_processing_summary(f"Error loading image: {e}")
                 self.loaded_image = None
 
-    def select_lut(self, index):
-        lut_filename = self.main_window.lut_combo.currentText()
-        if lut_filename and lut_filename != "No LUTs Found" and lut_filename != "Select LUT":
-            try:
-                self.loaded_lut = self.lut_manager.load_lut(lut_filename)
-                self.main_window.update_processing_summary(f"LUT selected: {lut_filename}")
-            except Exception as e:
-                self.main_window.update_processing_summary(f"Error loading LUT: {e}")
-                self.loaded_lut = None
-        else:
+    def select_lut(self):
+    lut_file = self.main_window.get_lut_file()
+    if lut_file:
+        try:
+            self.loaded_lut = self.lut_manager.load_lut(lut_file)
+            self.main_window.update_processing_summary(f"LUT selected: {os.path.basename(lut_file)}")
+        except Exception as e:
+            self.main_window.update_processing_summary(f"Error loading LUT: {e}")
             self.loaded_lut = None
-            self.main_window.update_processing_summary("No LUT selected.")
+    else:
+        self.loaded_lut = None
+        self.main_window.update_processing_summary("No LUT selected.")
 
     def start_print(self):
         if self.loaded_image is None:
