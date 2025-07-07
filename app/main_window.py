@@ -96,15 +96,15 @@ class MainWindow(QMainWindow):
             self.lut_combo.addItems(lut_files)
 
     def get_lut_file(self):
-    file_dialog = QFileDialog()
-    file_path, _ = file_dialog.getOpenFileName(
-        self,
-        "Select Tone Mapping LUT",
-        "",
-        "TIFF LUT Files (*.tif *.tiff)"
-    )
-    if file_path:
-        self.lut_path_display.setText(file_path)
-        return file_path
-    return None
+        file_dialog = QFileDialog()
+        file_path, _ = file_dialog.getOpenFileName(
+            self,
+            "Select Tone Mapping LUT",
+            "",
+            "TIFF LUT Files (*.tif *.tiff)"
+        )
+        if file_path:
+            self.lut_path_display.setText(file_path)
+            return file_path
+        return None
 
