@@ -15,10 +15,10 @@ class TestImageProcessor(unittest.TestCase):
         self.dummy_image_data = np.array([[1000, 2000, 3000], [4000, 5000, 6000]], dtype=np.uint16)
         tifffile.imwrite(self.test_image_path, self.dummy_image_data)
 
-        # Create a dummy 255x255 16-bit LUT for testing
-        self.dummy_lut_data = np.zeros((255, 255), dtype=np.uint16)
-        for i in range(255):
-            self.dummy_lut_data[i, :] = np.linspace(0, 65535, 255, dtype=np.uint16)
+        # Create a dummy 256x256 16-bit LUT for testing
+        self.dummy_lut_data = np.zeros((256, 256), dtype=np.uint16)
+        for i in range(256):
+            self.dummy_lut_data[i, :] = np.linspace(0, 65535, 256, dtype=np.uint16)
         tifffile.imwrite(self.test_lut_path, self.dummy_lut_data)
 
     def tearDown(self):
@@ -31,18 +31,18 @@ class TestImageProcessor(unittest.TestCase):
 
     def test_apply_lut(self):
         # Test with a simple LUT that maps input_8bit to output_16bit
-        test_lut_simple = np.zeros((255, 255), dtype=np.uint16)
+        test_lut_simple = np.zeros((256, 256), dtype=np.uint16)
         # Create a LUT where lut[i, :] maps i to i * 256 (approximate doubling for 8-bit equivalent)
-        for i in range(255):
-            test_lut_simple[i, :] = np.full(255, min(65535, i * 256), dtype=np.uint16)
+        for i in range(256):
+            test_lut_simple[i, :] = np.full(256, min(65535, i * 256), dtype=np.uint16)
         
         # Save this simple LUT for testing
         tifffile.imwrite("test_lut_simple.tif", test_lut_simple)
         loaded_simple_lut = tifffile.imread("test_lut_simple.tif")
 
         # Calculate expected output based on the logic in apply_lut
-        # 1. Scale dummy_image_data to 0-254 range (uint8)
-        scaled_image = np.clip((self.dummy_image_data / 65535.0 * 254), 0, 254).astype(np.uint8)
+        # 1. Scale dummy_image_data to 0-255 range (uint8)
+        scaled_image = np.clip((self.dummy_image_data / 65535.0 * 255), 0, 255).astype(np.uint8)
         
         # 2. Apply the 1D LUT (first row of test_lut_simple) to the scaled_image
         lut_1d = loaded_simple_lut[0, :]
