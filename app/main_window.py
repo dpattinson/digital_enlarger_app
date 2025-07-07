@@ -17,10 +17,12 @@ class MainWindow(QMainWindow):
         # Tone Map Selector
         lut_layout = QHBoxLayout()
         self.lut_label = QLabel("Tone Map LUT:")
-        self.lut_combo = QComboBox()
-        self.lut_combo.addItem("Select LUT") # Placeholder
+        self.lut_path_display = QLineEdit()
+        self.lut_path_display.setReadOnly(True)
+        self.browse_lut_button = QPushButton("Browse LUT")
         lut_layout.addWidget(self.lut_label)
-        lut_layout.addWidget(self.lut_combo)
+        lut_layout.addWidget(self.lut_path_display)
+        lut_layout.addWidget(self.browse_lut_button)
         self.layout.addLayout(lut_layout)
 
         # Image Loader
@@ -93,5 +95,16 @@ class MainWindow(QMainWindow):
         else:
             self.lut_combo.addItems(lut_files)
 
-
+    def get_lut_file(self):
+    file_dialog = QFileDialog()
+    file_path, _ = file_dialog.getOpenFileName(
+        self,
+        "Select Tone Mapping LUT",
+        "",
+        "TIFF LUT Files (*.tif *.tiff)"
+    )
+    if file_path:
+        self.lut_path_display.setText(file_path)
+        return file_path
+    return None
 
