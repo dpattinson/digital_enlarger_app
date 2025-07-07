@@ -20,7 +20,7 @@ class Controller:
 
     def connect_signals(self):
         self.main_window.browse_image_button.clicked.connect(self.select_image)
-        self.main_window.lut_combo.currentIndexChanged.connect(self.select_lut)
+        self.main_window.browse_lut_button.clicked.connect(self.select_lut)
         self.main_window.print_button.clicked.connect(self.start_print)
         self.main_window.stop_button.clicked.connect(self.stop_print)
 
