@@ -23,9 +23,9 @@ class LUTManager:
         # Load the 16-bit grayscale TIFF LUT
         lut = tifffile.imread(lut_path)
         
-        # Ensure LUT is 255x255 and 16-bit
-        if lut.shape != (255, 255) or lut.dtype != np.uint16:
-            raise ValueError(f"Invalid LUT format. Expected 255x255 16-bit, got {lut.shape} {lut.dtype}")
+        # Ensure LUT is 256x256 and 16-bit
+        if lut.shape != (256, 256) or lut.dtype != np.uint16:
+            raise ValueError(f"Invalid LUT format. Expected 256x256 16-bit, got {lut.shape} {lut.dtype}")
             
         return lut
 
