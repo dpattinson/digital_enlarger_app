@@ -15,25 +15,25 @@ class ImageProcessor:
 
     def apply_lut(self, image, lut):
         # Apply tone mapping LUT
-        # The LUT is 255x255, representing input intensity (0-65535) to output intensity (0-65535)
-        # We need to map the 16-bit image values to the 0-254 range for LUT lookup
+        # The LUT is 256x256, representing input intensity (0-65535) to output intensity (0-65535)
+        # We need to map the 16-bit image values to the 0-255 range for LUT lookup
         # And then map the LUT output back to 16-bit
 
-        # Scale 16-bit image values (0-65535) to 0-254 for indexing into the 255-entry LUT
-        # Ensure values are clamped to 0-254 to avoid out-of-bounds indexing
-        scaled_image = np.clip((image / 65535.0 * 254), 0, 254).astype(np.uint8)
+        # Scale 16-bit image values (0-65535) to 0-255 for indexing into the 256-entry LUT
+        # Ensure values are clamped to 0-255 to avoid out-of-bounds indexing
+        scaled_image = np.clip((image / 65535.0 * 255), 0, 255).astype(np.uint8)
 
-        if lut.shape == (255, 255):
+        if lut.shape == (256, 256):
             # Assuming the LUT is a 1D mapping where lut[input_value] = output_value
-            # and the 255x255 structure means each row is a potential LUT, or it's a 2D interpolation table.
+            # and the 256x256 structure means each row is a potential LUT, or it's a 2D interpolation table.
             # For simplicity and based on common LUT usage, we'll use the first row as the 1D LUT.
             lut_1d = lut[0, :]
             
             # Apply the 1D LUT to the scaled image
-            # The values in scaled_image (0-254) are used as indices into lut_1d
+            # The values in scaled_image (0-255) are used as indices into lut_1d
             processed_image = lut_1d[scaled_image]
         else:
-            raise ValueError("Unsupported LUT format. Expected 255x255.")
+            raise ValueError("Unsupported LUT format. Expected 256x256.")
 
         return processed_image.astype(np.uint16)
 
