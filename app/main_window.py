@@ -3,7 +3,9 @@ from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel,
     QLineEdit, QHBoxLayout, QFileDialog
 )
+from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
+import numpy as np
 
 class MainWindow(QMainWindow):
     """The main window of the application, handling UI elements and user interactions."""
@@ -43,8 +45,8 @@ class MainWindow(QMainWindow):
         image_layout.addWidget(self.browse_image_button)
         self.layout.addLayout(image_layout)
 
-        # Preview Area (Optional - Placeholder)
-        self.preview_label = QLabel("Preview Area (Optional)")
+        # Preview Area
+        self.preview_label = QLabel("No Image Loaded")
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_label.setStyleSheet("border: 1px solid gray; min-height: 150px;")
         self.layout.addWidget(self.preview_label)
@@ -125,6 +127,34 @@ class MainWindow(QMainWindow):
             text (str): The text to display in the processing summary.
         """
         self.processing_summary_label.setText(f"Processing Summary: {text}")
+
+    def display_image_in_preview(self, image_data):
+        """Displays the given image data in the preview_label.
+
+        Args:
+            image_data (numpy.ndarray): The image data (16-bit grayscale) to display.
+        """
+        if image_data is None:
+            self.preview_label.setText("No Image Loaded")
+            self.preview_label.clear()
+            return
+
+        # Normalize 16-bit image to 8-bit for display
+        # Scale to 0-255 and convert to uint8
+        display_image = (image_data / np.max(image_data) * 255).astype(np.uint8)
+
+        h, w = display_image.shape
+        q_image = QImage(display_image.data, w, h, QImage.Format.Format_Grayscale8)
+        pixmap = QPixmap.fromImage(q_image)
+
+        # Scale pixmap to fit the label while maintaining aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            self.preview_label.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.preview_label.setPixmap(scaled_pixmap)
+        self.preview_label.setText("") # Clear text once image is displayed
 
     #def populate_lut_combo(self, lut_files):
     #    """Populates the LUT combo box with available LUT files.

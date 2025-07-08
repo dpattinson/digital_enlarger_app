@@ -49,9 +49,11 @@ class Controller:
                     self.current_image_path
                 )
                 self.main_window.update_processing_summary("Image loaded successfully.")
+                self.main_window.display_image_in_preview(self.loaded_image)
             except (FileNotFoundError, ValueError, tifffile.TiffFileError) as e:
                 self.main_window.update_processing_summary(f"Error loading image: {e}")
                 self.loaded_image = None
+                self.main_window.display_image_in_preview(None)
 
     def select_lut(self):
         """Handles LUT selection from the file dialog and loads the LUT."""
@@ -119,5 +121,7 @@ class Controller:
         """Stops the image display loop."""
         self.display_window.stop_display_loop()
         self.main_window.update_processing_summary("Display loop stopped.")
+
+
 
 
