@@ -31,12 +31,18 @@ class TestLUTManager(unittest.TestCase):
 
     def test_init(self):
         """Test LUTManager initialization."""
-        lut_manager = LUTManager()
+        from unittest.mock import Mock
+        
+        # Mock dependencies for testing
+        mock_file_checker = Mock(return_value=True)
+        mock_dir_lister = Mock(return_value=['test.tif'])
+        
+        lut_manager = LUTManager("luts", file_checker=mock_file_checker, dir_lister=mock_dir_lister)
         self.assertEqual(lut_manager.lut_dir, "luts")
         
         # Test with custom directory
         custom_dir = "/custom/lut/dir"
-        lut_manager = LUTManager(custom_dir)
+        lut_manager = LUTManager(custom_dir, file_checker=mock_file_checker, dir_lister=mock_dir_lister)
         self.assertEqual(lut_manager.lut_dir, custom_dir)
 
     def test_load_lut_valid_file(self):
@@ -62,17 +68,23 @@ class TestLUTManager(unittest.TestCase):
         """Test loading non-existent LUT file."""
         non_existent_path = os.path.join(self.temp_dir, "non_existent.tif")
         
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(FileNotFoundError) as context:
             self.lut_manager.load_lut(non_existent_path)
         
         self.assertIn("LUT file not found", str(context.exception))
 
     def test_load_lut_invalid_extension(self):
         """Test loading file with invalid extension."""
-        invalid_path = os.path.join(self.temp_dir, "invalid.jpg")
+        from unittest.mock import Mock
+        
+        # Mock file_checker to return True (file exists)
+        mock_file_checker = Mock(return_value=True)
+        lut_manager = LUTManager(self.temp_dir, file_checker=mock_file_checker)
+        
+        invalid_path = "/fake/path/invalid.jpg"
         
         with self.assertRaises(ValueError) as context:
-            self.lut_manager.load_lut(invalid_path)
+            lut_manager.load_lut(invalid_path)
         
         self.assertIn("LUT file must be a TIFF file", str(context.exception))
 
