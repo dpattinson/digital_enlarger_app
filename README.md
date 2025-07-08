@@ -5,7 +5,7 @@ This is a desktop application designed to simulate a photographic enlarger, allo
 ## Features
 
 - **Image Input:** Load 16-bit grayscale TIFF images.
-- **Tone Mapping:** Apply custom LUTs (255x255 16-bit grayscale TIFF).
+- **Tone Mapping:** Apply custom LUTs (256x256 16-bit grayscale TIFF).
 - **Inversion:** Convert images to simulate photographic negatives.
 - **12-bit Emulation:** Display images as a sequence of 8-bit frames to simulate 12-bit depth.
 - **Display Control:** Start and stop the display loop with adjustable exposure duration.
