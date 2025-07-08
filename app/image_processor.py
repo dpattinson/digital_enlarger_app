@@ -49,7 +49,7 @@ class ImageProcessor:
 
         Args:
             image (numpy.ndarray): The input image data.
-            lut (numpy.ndarray): The LUT to apply.
+            lut (numpy.ndarray): The LUT to apply (256x256 2D array).
 
         Returns:
             numpy.ndarray: The image with the LUT applied.
@@ -58,15 +58,13 @@ class ImageProcessor:
         if image.dtype != np.uint16:
             image = image.astype(np.uint16)
 
-        # Normalize image to 0-lut_max_index for LUT lookup
-        lut_max_index = lut.shape[0] - 1
-        # Scale image values to fit the LUT index range
-        scaled_image = (image / np.iinfo(image.dtype).max * lut_max_index).astype(int)
-        # Clip values to ensure they are within the valid LUT index range
-        scaled_image = np.clip(scaled_image, 0, lut_max_index)
-
-        # Apply the LUT
-        processed_image = lut[scaled_image]
+        # Flatten the 2D LUT to create a 1D lookup table
+        # The 256x256 LUT contains 65536 values for the full 16-bit range
+        lut_1d = lut.flatten()
+        
+        # Apply the LUT directly using the image values as indices
+        # Since we have a 16-bit image (0-65535) and a 65536-entry LUT, we can index directly
+        processed_image = lut_1d[image]
 
         return processed_image
 
