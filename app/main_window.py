@@ -48,7 +48,10 @@ class MainWindow(QMainWindow):
         # Preview Area
         self.preview_label = QLabel("No Image Loaded")
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_label.setStyleSheet("border: 1px solid gray; min-height: 150px;")
+        # Set fixed size with 16:9 aspect ratio (7680:4320 scaled down)
+        self.preview_label.setFixedSize(768, 432)  # 16:9 aspect ratio
+        self.preview_label.setStyleSheet("border: 1px solid gray;")
+        self.preview_label.setScaledContents(True)  # Scale image to fit the label
         self.layout.addWidget(self.preview_label)
 
         # Processing Summary
@@ -143,23 +146,13 @@ class MainWindow(QMainWindow):
         # Ensure data is contiguous for QImage
         display_image = np.ascontiguousarray(image_data)
 
-        # Determine the format based on bit depth
-        if image_data.dtype == np.uint16:
-            q_image = QImage(display_image.data, w, h, w * 2, QImage.Format.Format_Grayscale16)
-        else:
-            # Handle other cases or convert to a supported format
-            self.preview_label.setText("Unsupported image format")
-            return
+        # Assuming image_data is always 16-bit grayscale as per requirements
+        q_image = QImage(display_image.data, w, h, w * 2, QImage.Format.Format_Grayscale16)
 
         pixmap = QPixmap.fromImage(q_image)
 
-        # Scale pixmap to fit the label while maintaining aspect ratio
-        scaled_pixmap = pixmap.scaled(
-            self.preview_label.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-        self.preview_label.setPixmap(scaled_pixmap)
-        self.preview_label.setText("") # Clear text once image is displayed
+        # Set pixmap directly - scaling is handled by setScaledContents(True)
+        self.preview_label.setPixmap(pixmap)
+        self.preview_label.setText("")  # Clear text once image is displayed
 
 
