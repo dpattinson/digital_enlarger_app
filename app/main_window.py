@@ -6,12 +6,25 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
 import numpy as np
+from app.image_display_manager import ImageDisplayManager
 
 class MainWindow(QMainWindow):
     """The main window of the application, handling UI elements and user interactions."""
-    def __init__(self):
-        """Initializes the MainWindow and sets up the UI."""
+    def __init__(self, display_manager=None, file_dialog=None):
+        """Initializes the MainWindow and sets up the UI.
+        
+        Args:
+            display_manager: ImageDisplayManager instance for testable image display logic.
+                           Defaults to ImageDisplayManager() if not provided.
+            file_dialog: File dialog interface for file selection.
+                        Defaults to QtFileDialog() if not provided.
+        """
         super().__init__()
+        self.display_manager = display_manager or ImageDisplayManager()
+        
+        # Import here to avoid circular imports
+        from app.view_interfaces import QtFileDialog
+        self.file_dialog = file_dialog or QtFileDialog()
         self.setWindowTitle("Darkroom Enlarger App")
         self.setGeometry(100, 100, 800, 600)
 
@@ -105,8 +118,7 @@ class MainWindow(QMainWindow):
         Returns:
             str: The path to the selected image file, or None if no file is selected.
         """
-        file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(
+        file_path, _ = self.file_dialog.get_open_filename(
             self, "Select 16-bit TIFF Image", "", "TIFF Images (*.tif *.tiff)"
         )
         if file_path:
@@ -120,8 +132,7 @@ class MainWindow(QMainWindow):
         Returns:
             str: The path to the selected LUT file, or None if no file is selected.
         """
-        file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(
+        file_path, _ = self.file_dialog.get_open_filename(
             self, "Select LUT File", "", "LUT Files (*.tif *.tiff)"
         )
         if file_path:
@@ -143,17 +154,27 @@ class MainWindow(QMainWindow):
         Args:
             image_data (numpy.ndarray): The image data (16-bit grayscale) to display.
         """
-        if image_data is None:
-            self.preview_label.setText("No Image Loaded")
+        # Use ImageDisplayManager for all display logic
+        container_size = (self.preview_label.width(), self.preview_label.height())
+        display_info = self.display_manager.calculate_display_info(image_data, container_size)
+        
+        if display_info['show_placeholder']:
+            self.preview_label.setText(display_info['placeholder_text'])
             self.preview_label.clear()
             return
 
-        h, w = image_data.shape
-        # Ensure data is contiguous for QImage
-        display_image = np.ascontiguousarray(image_data)
-
-        # Assuming image_data is always 16-bit grayscale as per requirements
-        q_image = QImage(display_image.data, w, h, w * 2, QImage.Format.Format_Grayscale16)
+        
+        # Create QImage from processed data
+        display_data = display_info['display_data']
+        qt_params = display_info['qt_params']
+        
+        q_image = QImage(
+            display_data.data,
+            qt_params['width'],
+            qt_params['height'],
+            qt_params['bytes_per_line'],
+            QImage.Format.Format_Grayscale16
+        )
 
         pixmap = QPixmap.fromImage(q_image)
 
