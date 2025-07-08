@@ -20,7 +20,8 @@ samples/
 1. **Load Sample Image:**
    - Run the application: `python3 main.py`
    - Click "Browse" and navigate to `samples/images/`
-   - Select `sample_image.tif` for basic testing or `test_step_wedge.tif` for calibration
+   - Select `L1000440-Edit_copy.tif` for high-quality photographic testing
+   - Or `sample_image.tif` for basic testing or `test_step_wedge.tif` for calibration
 
 2. **Apply Sample LUT:**
    - The application will automatically detect LUT files in `samples/luts/`

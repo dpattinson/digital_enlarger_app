@@ -102,6 +102,15 @@ Sample images should:
 
 ### Currently Available Files
 
+#### **L1000440-Edit_copy.tif**
+- **Dimensions:** 5037x4320 pixels (high resolution)
+- **Type:** Professional photographic image
+- **Characteristics:** 16-bit grayscale TIFF from Leica M11-P camera
+- **Purpose:** High-quality photographic content for realistic testing
+- **Content:** Portrait/artistic photography with excellent tonal range
+- **Usage:** Ideal for testing with professional LUTs and high-resolution workflows
+- **File Size:** ~42MB (large file performance testing)
+
 #### **sample_image.tif**
 - **Dimensions:** 256x100 pixels
 - **Type:** Test image for basic functionality testing
