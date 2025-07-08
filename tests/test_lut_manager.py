@@ -124,13 +124,16 @@ class TestLUTManager(unittest.TestCase):
         
         self.assertIn("LUT must be 256x256 pixels", str(context.exception))
 
-    @patch('tifffile.imread')
-    def test_load_lut_read_error(self, mock_imread):
+    def test_load_lut_read_error(self):
         """Test handling of TIFF read errors."""
-        mock_imread.side_effect = Exception("TIFF read error")
+        from unittest.mock import Mock
+        
+        # Create mock that raises exception when called
+        mock_tiff_reader = Mock(side_effect=Exception("TIFF read error"))
+        lut_manager = LUTManager(self.temp_dir, tiff_reader=mock_tiff_reader)
         
         with self.assertRaises(ValueError) as context:
-            self.lut_manager.load_lut(self.valid_lut_path)
+            lut_manager.load_lut(self.valid_lut_path)
         
         self.assertIn("Failed to read TIFF LUT file", str(context.exception))
 

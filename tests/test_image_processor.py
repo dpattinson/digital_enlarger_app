@@ -60,13 +60,16 @@ class TestImageProcessor(unittest.TestCase):
         
         self.assertIn("Input file must be a TIFF file", str(context.exception))
 
-    @patch('tifffile.imread')
-    def test_load_image_read_error(self, mock_imread):
+    def test_load_image_read_error(self):
         """Test handling of TIFF read errors."""
-        mock_imread.side_effect = Exception("TIFF read error")
+        from unittest.mock import Mock
+        
+        # Create mock that raises exception when called
+        mock_tiff_reader = Mock(side_effect=Exception("TIFF read error"))
+        processor = ImageProcessor(tiff_reader=mock_tiff_reader)
         
         with self.assertRaises(ValueError) as context:
-            self.processor.load_image(self.test_image_path)
+            processor.load_image(self.test_image_path)
         
         self.assertIn("Failed to read TIFF file", str(context.exception))
 
