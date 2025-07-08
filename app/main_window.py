@@ -103,6 +103,21 @@ class MainWindow(QMainWindow):
             return file_path
         return None
 
+    def get_lut_file(self):
+        """Opens a file dialog to select a LUT file.
+
+        Returns:
+            str: The path to the selected LUT file, or None if no file is selected.
+        """
+        file_dialog = QFileDialog()
+        file_path, _ = file_dialog.getOpenFileName(
+            self, "Select LUT File", "", "LUT Files (*.tif *.tiff)"
+        )
+        if file_path:
+            self.lut_path_display.setText(file_path)
+            return file_path
+        return None
+
     def update_processing_summary(self, text):
         """Updates the processing summary label with the given text.
 
