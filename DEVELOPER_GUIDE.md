@@ -8,8 +8,9 @@ This guide provides detailed information for developers working on the Digital E
 2. [Testing Strategy](#testing-strategy)
 3. [Development Workflow](#development-workflow)
 4. [Code Style Guidelines](#code-style-guidelines)
-5. [Debugging and Troubleshooting](#debugging-and-troubleshooting)
+5. [Debugging](#debugging-workflow)
 6. [Performance Considerations](#performance-considerations)
+7. [Troubleshooting](#troubleshooting-common-issues)
 
 ## Architecture Overview
 
