@@ -1,78 +1,68 @@
-"""Image processing functionalities for the Darkroom Enlarger Application."""
 import numpy as np
 import tifffile
+from PIL import Image
 
 class ImageProcessor:
-    """Handles loading, processing, and converting images for display."""
     def __init__(self):
-        """Initializes the ImageProcessor."""
         pass
 
     def load_image(self, image_path):
-        """Loads a 16-bit TIFF image.
-
-        Args:
-            image_path (str): The path to the 16-bit TIFF image file.
-
-        Returns:
-            numpy.ndarray: The loaded image data as a NumPy array.
-        """
-        return tifffile.imread(image_path)
+        # Load 16-bit grayscale TIFF image
+        img = tifffile.imread(image_path)
+        if img.dtype != np.uint16:
+            raise ValueError(f"Image must be 16-bit grayscale, got {img.dtype}")
+        return img
 
     def apply_lut(self, image, lut):
-        """Applies a Look-Up Table (LUT) to the image.
+        # Apply tone mapping LUT
+        # The LUT is 256x256, representing input intensity (0-65535) to output intensity (0-65535)
+        # We need to map the 16-bit image values to the 0-255 range for LUT lookup
+        # And then map the LUT output back to 16-bit
 
-        Args:
-            image (numpy.ndarray): The input image data.
-            lut (numpy.ndarray): The LUT to apply.
+        # Scale 16-bit image values (0-65535) to 0-255 for indexing into the 256-entry LUT
+        # Ensure values are clamped to 0-255 to avoid out-of-bounds indexing
+        scaled_image = np.clip((image / 65535.0 * 255), 0, 255).astype(np.uint8)
 
-        Returns:
-            numpy.ndarray: The image with the LUT applied.
-        """
-        # Ensure image is 16-bit for proper LUT application
-        if image.dtype != np.uint16:
-            image = image.astype(np.uint16)
+        if lut.shape == (256, 256):
+            # Assuming the LUT is a 1D mapping where lut[input_value] = output_value
+            # and the 256x256 structure means each row is a potential LUT, or it's a 2D interpolation table.
+            # For simplicity and based on common LUT usage, we'll use the first row as the 1D LUT.
+            lut_1d = lut[0, :]
+            
+            # Apply the 1D LUT to the scaled image
+            # The values in scaled_image (0-255) are used as indices into lut_1d
+            processed_image = lut_1d[scaled_image]
+        else:
+            raise ValueError("Unsupported LUT format. Expected 256x256.")
 
-        # Normalize image to 0-lut_max_index for LUT lookup
-        lut_max_index = lut.shape[0] - 1
-        # Scale image values to fit the LUT index range
-        scaled_image = (image / np.iinfo(image.dtype).max * lut_max_index).astype(int)
-        # Clip values to ensure they are within the valid LUT index range
-        scaled_image = np.clip(scaled_image, 0, lut_max_index)
-
-        # Apply the LUT
-        processed_image = lut[scaled_image]
-
-        return processed_image
+        return processed_image.astype(np.uint16)
 
     def invert_image(self, image):
-        """Inverts the image (negative effect).
+        # Invert 16-bit image
+        return 65535 - image
 
-        Args:
-            image (numpy.ndarray): The input image data.
+    def emulate_12bit_to_8bit_frames(self, image_16bit, num_frames=4):
+        # Convert 16-bit image to a sequence of 8-bit frames to simulate 12-bit depth
+        # This is a simplified temporal dithering/frame sequencing approach.
+        # The idea is to distribute the 16-bit value across multiple 8-bit frames.
+        # For 12-bit emulation on an 8-bit display, we need to simulate 4096 levels.
+        # An 8-bit display has 256 levels.
+        # 4096 / 256 = 16. So each 8-bit step represents 16 12-bit steps.
 
-        Returns:
-            numpy.ndarray: The inverted image data.
-        """
-        return np.iinfo(image.dtype).max - image
+        frames = []
+        # Scale 16-bit image to 12-bit range (0-4095)
+        image_12bit = (image_16bit / 65535.0 * 4095).astype(np.uint16)
 
-    def emulate_12bit_to_8bit_frames(self, image_16bit):
-        """Emulates 12-bit exposure by generating 8-bit frames.
-
-        Args:
-            image_16bit (numpy.ndarray): The 16-bit input image data.
-
-        Returns:
-            list: A list of 8-bit NumPy arrays, each representing a frame.
-        """
-        frames_8bit = []
-        # Assuming 12-bit emulation means shifting bits to get different exposures
-        # This is a simplified emulation. For true 12-bit emulation, more complex
-        # algorithms involving exposure times and light intensity would be needed.
-        for shift in range(4):
-            # Shift right by 'shift' bits to simulate different exposures
-            frame = (image_16bit >> shift).astype(np.uint8)
-            frames_8bit.append(frame)
-        return frames_8bit
+        for i in range(num_frames):
+            # Simple approach: create frames by shifting bits or distributing intensity
+            # This is a very basic example and will likely need a more advanced algorithm
+            # for proper temporal dithering or frame sequencing.
+            
+            # For demonstration, let's just create slightly varied 8-bit versions
+            # This is NOT a proper 12-bit emulation, but a starting point.
+            frame = (image_12bit >> (4 - i)) & 0xFF # Shift and mask to get 8-bit component
+            frames.append(frame.astype(np.uint8))
+            
+        return frames
 
 

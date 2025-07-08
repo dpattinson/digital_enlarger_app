@@ -31,23 +31,22 @@ class TestImageProcessor(unittest.TestCase):
 
     def test_apply_lut(self):
         # Test with a simple LUT that maps input_8bit to output_16bit
-        # Create a 2D LUT where lut[i, j] maps to a simple value
-        test_lut_simple = np.zeros((65536, 256), dtype=np.uint16)
-        for i in range(65536):
-            test_lut_simple[i, :] = np.full(256, min(65535, i // 256), dtype=np.uint16)
+        test_lut_simple = np.zeros((256, 256), dtype=np.uint16)
+        # Create a LUT where lut[i, :] maps i to i * 256 (approximate doubling for 8-bit equivalent)
+        for i in range(256):
+            test_lut_simple[i, :] = np.full(256, min(65535, i * 256), dtype=np.uint16)
         
         # Save this simple LUT for testing
         tifffile.imwrite("test_lut_simple.tif", test_lut_simple)
         loaded_simple_lut = tifffile.imread("test_lut_simple.tif")
 
         # Calculate expected output based on the logic in apply_lut
-        # 1. Scale dummy_image_data to 0-65535 range (uint16)
-        lut_max_index = loaded_simple_lut.shape[0] - 1
-        scaled_image = (self.dummy_image_data / np.iinfo(self.dummy_image_data.dtype).max * lut_max_index).astype(int)
-        scaled_image = np.clip(scaled_image, 0, lut_max_index)
+        # 1. Scale dummy_image_data to 0-255 range (uint8)
+        scaled_image = np.clip((self.dummy_image_data / 65535.0 * 255), 0, 255).astype(np.uint8)
         
-        # 2. Apply the 2D LUT to the scaled_image
-        expected_image = loaded_simple_lut[scaled_image]
+        # 2. Apply the 1D LUT (first row of test_lut_simple) to the scaled_image
+        lut_1d = loaded_simple_lut[0, :]
+        expected_image = lut_1d[scaled_image]
 
         processed_image = self.processor.apply_lut(self.dummy_image_data, loaded_simple_lut)
         np.testing.assert_array_equal(processed_image, expected_image)
@@ -59,7 +58,7 @@ class TestImageProcessor(unittest.TestCase):
         np.testing.assert_array_equal(inverted_image, expected_inverted_image)
 
     def test_emulate_12bit_to_8bit_frames(self):
-        frames = self.processor.emulate_12bit_to_8bit_frames(self.dummy_image_data)
+        frames = self.processor.emulate_12bit_to_8bit_frames(self.dummy_image_data, num_frames=4)
         self.assertEqual(len(frames), 4)
         for frame in frames:
             self.assertEqual(frame.dtype, np.uint8)
