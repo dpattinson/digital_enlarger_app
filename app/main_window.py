@@ -53,6 +53,13 @@ class MainWindow(QMainWindow):
         self.preview_label.setStyleSheet("border: 1px solid gray;")
         self.layout.addWidget(self.preview_label)
 
+        # Process Image Control
+        process_layout = QHBoxLayout()
+        self.process_image_button = QPushButton("Process Image")
+        process_layout.addWidget(self.process_image_button)
+        process_layout.addStretch()  # Add stretch to left-align the button
+        self.layout.addLayout(process_layout)
+
         # Processing Summary
         self.processing_summary_label = QLabel("Processing Summary: Ready")
         self.layout.addWidget(self.processing_summary_label)

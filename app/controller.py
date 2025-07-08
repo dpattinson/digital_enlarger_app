@@ -29,6 +29,7 @@ class Controller:
         """Connects UI signals to controller slots."""
         self.main_window.browse_image_button.clicked.connect(self.select_image)
         self.main_window.browse_lut_button.clicked.connect(self.select_lut)
+        self.main_window.process_image_button.clicked.connect(self.process_image)
         self.main_window.print_button.clicked.connect(self.start_print)
         self.main_window.stop_button.clicked.connect(self.stop_print)
 
@@ -70,6 +71,34 @@ class Controller:
         else:
             self.loaded_lut = None
             self.main_window.update_processing_summary("No LUT selected.")
+
+    def process_image(self):
+        """Processes the loaded image by applying LUT and inversion, then displays the result."""
+        if self.loaded_image is None:
+            self.main_window.update_processing_summary("Please load an image first.")
+            return
+        if self.loaded_lut is None:
+            self.main_window.update_processing_summary("Please select a LUT first.")
+            return
+
+        self.main_window.update_processing_summary("Processing image...")
+        try:
+            # Apply LUT
+            processed_image = self.image_processor.apply_lut(
+                self.loaded_image, self.loaded_lut
+            )
+            self.main_window.update_processing_summary("LUT applied.")
+
+            # Invert image
+            inverted_image = self.image_processor.invert_image(processed_image)
+            self.main_window.update_processing_summary("Image inverted.")
+
+            # Display the processed image in the preview area
+            self.main_window.display_image_in_preview(inverted_image)
+            self.main_window.update_processing_summary("Image processed and displayed in preview.")
+
+        except (ValueError, TypeError, RuntimeError) as e:
+            self.main_window.update_processing_summary(f"Error during processing: {e}")
 
     def start_print(self):
         """Initiates the image processing and display loop for printing."""
