@@ -51,7 +51,6 @@ class MainWindow(QMainWindow):
         # Set fixed size with 16:9 aspect ratio (7680:4320 scaled down)
         self.preview_label.setFixedSize(768, 432)  # 16:9 aspect ratio
         self.preview_label.setStyleSheet("border: 1px solid gray;")
-        self.preview_label.setScaledContents(True)  # Scale image to fit the label
         self.layout.addWidget(self.preview_label)
 
         # Processing Summary
@@ -151,8 +150,13 @@ class MainWindow(QMainWindow):
 
         pixmap = QPixmap.fromImage(q_image)
 
-        # Set pixmap directly - scaling is handled by setScaledContents(True)
-        self.preview_label.setPixmap(pixmap)
+        # Scale pixmap to fit within the 16:9 container while preserving aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            self.preview_label.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.preview_label.setPixmap(scaled_pixmap)
         self.preview_label.setText("")  # Clear text once image is displayed
 
 
