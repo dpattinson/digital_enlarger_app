@@ -1,0 +1,478 @@
+diff --git a/app/controller.py b/app/controller.py
+index ac20ba8..299e15e 100644
+--- a/app/controller.py
++++ b/app/controller.py
+@@ -1,11 +1,18 @@
++"""Controller for the Darkroom Enlarger Application."""
+ import os
+-from PyQt6.QtWidgets import QApplication
++import tifffile
+ from app.lut_manager import LUTManager
+ from app.image_processor import ImageProcessor
+ from app.display_window import DisplayWindow
+ 
+ class Controller:
++    """Handles the logic and interactions between the main window, image processor, and LUT manager."""
+     def __init__(self, main_window):
++        """Initializes the Controller with the main application window.
++
++        Args:
++            main_window: The main application window (MainWindow instance).
++        """
+         self.main_window = main_window
+         self.lut_manager = LUTManager(os.path.join(os.path.dirname(__file__), "..", "luts"))
+         self.image_processor = ImageProcessor()
+@@ -19,6 +26,7 @@ class Controller:
+         self.loaded_lut = None
+ 
+     def connect_signals(self):
++        """Connects UI signals to controller slots."""
+         self.main_window.browse_image_button.clicked.connect(self.select_image)
+         self.main_window.browse_lut_button.clicked.connect(self.select_lut)
+         self.main_window.print_button.clicked.connect(self.start_print)
+@@ -29,24 +37,32 @@ class Controller:
+     #    self.main_window.populate_lut_combo(lut_names)
+ 
+     def select_image(self):
++        """Handles image selection from the file dialog and loads the image."""
+         file_path = self.main_window.get_image_file()
+         if file_path:
+             self.current_image_path = file_path
+-            self.main_window.update_processing_summary(f"Image selected: {os.path.basename(file_path)}")
++            self.main_window.update_processing_summary(
++                f"Image selected: {os.path.basename(file_path)}"
++            )
+             try:
+-                self.loaded_image = self.image_processor.load_image(self.current_image_path)
++                self.loaded_image = self.image_processor.load_image(
++                    self.current_image_path
++                )
+                 self.main_window.update_processing_summary("Image loaded successfully.")
+-            except Exception as e:
++            except (FileNotFoundError, ValueError, tifffile.TiffFileError) as e:
+                 self.main_window.update_processing_summary(f"Error loading image: {e}")
+                 self.loaded_image = None
+ 
+     def select_lut(self):
++        """Handles LUT selection from the file dialog and loads the LUT."""
+         lut_file = self.main_window.get_lut_file()
+         if lut_file:
+             try:
+                 self.loaded_lut = self.lut_manager.load_lut(lut_file)
+-                self.main_window.update_processing_summary(f"LUT selected: {os.path.basename(lut_file)}")
+-            except Exception as e:
++                self.main_window.update_processing_summary(
++                    f"LUT selected: {os.path.basename(lut_file)}"
++                )
++            except (FileNotFoundError, ValueError, tifffile.TiffFileError) as e:
+                 self.main_window.update_processing_summary(f"Error loading LUT: {e}")
+                 self.loaded_lut = None
+         else:
+@@ -54,6 +70,7 @@ class Controller:
+             self.main_window.update_processing_summary("No LUT selected.")
+ 
+     def start_print(self):
++        """Initiates the image processing and display loop for printing."""
+         if self.loaded_image is None:
+             self.main_window.update_processing_summary("Please load an image first.")
+             return
+@@ -64,7 +81,9 @@ class Controller:
+         self.main_window.update_processing_summary("Processing image...")
+         try:
+             # Apply LUT
+-            processed_image = self.image_processor.apply_lut(self.loaded_image, self.loaded_lut)
++            processed_image = self.image_processor.apply_lut(
++                self.loaded_image, self.loaded_lut
++            )
+             self.main_window.update_processing_summary("LUT applied.")
+ 
+             # Invert image
+@@ -72,15 +91,20 @@ class Controller:
+             self.main_window.update_processing_summary("Image inverted.")
+ 
+             # Emulate 12-bit frames
+-            frames_8bit = self.image_processor.emulate_12bit_to_8bit_frames(inverted_image)
+-            self.main_window.update_processing_summary(f"Generated {len(frames_8bit)} 8-bit frames for 12-bit emulation.")
++            frames_8bit = self.image_processor.emulate_12bit_to_8bit_frames(
++                inverted_image
++            )
++            self.main_window.update_processing_summary(
++                f"Generated {len(frames_8bit)} 8-bit frames for 12-bit emulation."
++            )
+ 
+             exposure_duration_str = self.main_window.exposure_input.text()
+             try:
+                 exposure_duration_s = float(exposure_duration_str)
+                 loop_duration_ms = int(exposure_duration_s * 1000)
+             except ValueError:
+-                self.main_window.update_processing_summary("Invalid exposure duration. Using default 30s.")
++                self.main_window.update_processing_summary("Invalid exposure duration. "
++                                                            "Using default 30s.")
+                 loop_duration_ms = 30000 # Default to 30 seconds
+ 
+             self.display_window.set_frames(frames_8bit, loop_duration_ms)
+@@ -88,23 +112,12 @@ class Controller:
+             self.display_window.start_display_loop()
+             self.main_window.update_processing_summary("Display loop started.")
+ 
+-        except Exception as e:
++        except (ValueError, TypeError, RuntimeError) as e:
+             self.main_window.update_processing_summary(f"Error during processing: {e}")
+ 
+     def stop_print(self):
++        """Stops the image display loop."""
+         self.display_window.stop_display_loop()
+         self.main_window.update_processing_summary("Display loop stopped.")
+ 
+ 
+-# Modify main.py to integrate the Controller
+-# from app.main_window import MainWindow
+-# from app.controller import Controller
+-
+-# if __name__ == '__main__':
+-#     app = QApplication(sys.argv)
+-#     main_window = MainWindow()
+-#     controller = Controller(main_window) # Instantiate controller
+-#     main_window.show()
+-#     sys.exit(app.exec())
+-
+-
+diff --git a/app/display_window.py b/app/display_window.py
+index d401552..6ddf5c6 100644
+--- a/app/display_window.py
++++ b/app/display_window.py
+@@ -1,10 +1,12 @@
++"""Secondary display window for the Darkroom Enlarger Application."""
+ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+ from PyQt6.QtGui import QPixmap, QImage
+ from PyQt6.QtCore import Qt, QTimer
+-import numpy as np
+ 
+ class DisplayWindow(QWidget):
++    """A window to display the processed image frames for 12-bit emulation."""
+     def __init__(self):
++        """Initializes the DisplayWindow."""
+         super().__init__()
+         self.setWindowTitle("Secondary Display - Darkroom Enlarger")
+         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+@@ -23,45 +25,58 @@ class DisplayWindow(QWidget):
+         self.start_time = 0
+ 
+     def set_frames(self, frames, loop_duration_ms):
++        """Sets the frames to be displayed and the total loop duration.
++
++        Args:
++            frames (list): A list of 8-bit numpy arrays representing image frames.
++            loop_duration_ms (int): The total duration of the display loop in milliseconds.
++        """
+         self.frames = frames
+         self.loop_duration_ms = loop_duration_ms
+         self.current_frame_index = 0
+ 
+     def start_display_loop(self):
++        """Starts the continuous display loop of image frames."""
+         if not self.frames:
+             print("No frames to display.")
+             return
+ 
++        # Calculate interval per frame to achieve desired loop duration
++        interval_per_frame = int(self.loop_duration_ms / len(self.frames))
++        if interval_per_frame <= 0:
++            interval_per_frame = 1 # Ensure at least 1ms interval
++
+         self.start_time = self.frame_timer.remainingTime() # Not accurate, but for simulation
+-        self.frame_timer.start(int(self.loop_duration_ms / len(self.frames)))
++        self.frame_timer.start(interval_per_frame)
+         self._next_frame()
+ 
+     def stop_display_loop(self):
++        """Stops the display loop and clears the displayed image."""
+         self.frame_timer.stop()
+         self.image_label.clear()
+ 
+     def _next_frame(self):
++        """Displays the next frame in the sequence."""
+         if not self.frames:
+             self.stop_display_loop()
+             return
+ 
+         frame_data = self.frames[self.current_frame_index]
+         h, w = frame_data.shape
++        # QImage.Format_Grayscale8 is for 8-bit grayscale images
+         q_image = QImage(frame_data.data, w, h, QImage.Format.Format_Grayscale8)
+         pixmap = QPixmap.fromImage(q_image)
+         self.image_label.setPixmap(pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+ 
+         self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
+ 
+-        # Simple loop duration check (needs more robust implementation for precise timing)
+-        # if (QTimer.remainingTime() - self.start_time) >= self.loop_duration_ms:
+-        #     self.stop_display_loop()
++    def show_on_secondary_monitor(self):
++        """Shows the display window, ideally on a secondary monitor if available.
+ 
+-    def show_on_secondary_monitor(self, screen_index=1):
+-        # This is a simplified approach. Proper multi-monitor handling requires QApplication.screens()
+-        # and moving the window to the geometry of the target screen.
+-        # For now, it just shows the window.
++        Note: This is a simplified approach. Proper multi-monitor handling requires
++        QApplication.screens() and moving the window to the geometry of the target screen.
++        For now, it just shows the window maximized.
++        """
+         self.showMaximized()
+ 
+ 
+-
+diff --git a/app/image_processor.py b/app/image_processor.py
+index 3718359..9582fad 100644
+--- a/app/image_processor.py
++++ b/app/image_processor.py
+@@ -1,68 +1,78 @@
++"""Image processing functionalities for the Darkroom Enlarger Application."""
+ import numpy as np
+ import tifffile
+-from PIL import Image
+ 
+ class ImageProcessor:
++    """Handles loading, processing, and converting images for display."""
+     def __init__(self):
++        """Initializes the ImageProcessor."""
+         pass
+ 
+     def load_image(self, image_path):
+-        # Load 16-bit grayscale TIFF image
+-        img = tifffile.imread(image_path)
+-        if img.dtype != np.uint16:
+-            raise ValueError(f"Image must be 16-bit grayscale, got {img.dtype}")
+-        return img
++        """Loads a 16-bit TIFF image.
++
++        Args:
++            image_path (str): The path to the 16-bit TIFF image file.
++
++        Returns:
++            numpy.ndarray: The loaded image data as a NumPy array.
++        """
++        return tifffile.imread(image_path)
+ 
+     def apply_lut(self, image, lut):
+-        # Apply tone mapping LUT
+-        # The LUT is 256x256, representing input intensity (0-65535) to output intensity (0-65535)
+-        # We need to map the 16-bit image values to the 0-255 range for LUT lookup
+-        # And then map the LUT output back to 16-bit
+-
+-        # Scale 16-bit image values (0-65535) to 0-255 for indexing into the 256-entry LUT
+-        # Ensure values are clamped to 0-255 to avoid out-of-bounds indexing
+-        scaled_image = np.clip((image / 65535.0 * 255), 0, 255).astype(np.uint8)
+-
+-        if lut.shape == (256, 256):
+-            # Assuming the LUT is a 1D mapping where lut[input_value] = output_value
+-            # and the 256x256 structure means each row is a potential LUT, or it's a 2D interpolation table.
+-            # For simplicity and based on common LUT usage, we'll use the first row as the 1D LUT.
+-            lut_1d = lut[0, :]
+-            
+-            # Apply the 1D LUT to the scaled image
+-            # The values in scaled_image (0-255) are used as indices into lut_1d
+-            processed_image = lut_1d[scaled_image]
+-        else:
+-            raise ValueError("Unsupported LUT format. Expected 256x256.")
+-
+-        return processed_image.astype(np.uint16)
++        """Applies a Look-Up Table (LUT) to the image.
++
++        Args:
++            image (numpy.ndarray): The input image data.
++            lut (numpy.ndarray): The LUT to apply.
++
++        Returns:
++            numpy.ndarray: The image with the LUT applied.
++        """
++        # Ensure image is 16-bit for proper LUT application
++        if image.dtype != np.uint16:
++            image = image.astype(np.uint16)
++
++        # Normalize image to 0-lut_max_index for LUT lookup
++        lut_max_index = lut.shape[0] - 1
++        # Scale image values to fit the LUT index range
++        scaled_image = (image / np.iinfo(image.dtype).max * lut_max_index).astype(int)
++        # Clip values to ensure they are within the valid LUT index range
++        scaled_image = np.clip(scaled_image, 0, lut_max_index)
++
++        # Apply the LUT
++        processed_image = lut[scaled_image]
++
++        return processed_image
+ 
+     def invert_image(self, image):
+-        # Invert 16-bit image
+-        return 65535 - image
+-
+-    def emulate_12bit_to_8bit_frames(self, image_16bit, num_frames=4):
+-        # Convert 16-bit image to a sequence of 8-bit frames to simulate 12-bit depth
+-        # This is a simplified temporal dithering/frame sequencing approach.
+-        # The idea is to distribute the 16-bit value across multiple 8-bit frames.
+-        # For 12-bit emulation on an 8-bit display, we need to simulate 4096 levels.
+-        # An 8-bit display has 256 levels.
+-        # 4096 / 256 = 16. So each 8-bit step represents 16 12-bit steps.
+-
+-        frames = []
+-        # Scale 16-bit image to 12-bit range (0-4095)
+-        image_12bit = (image_16bit / 65535.0 * 4095).astype(np.uint16)
+-
+-        for i in range(num_frames):
+-            # Simple approach: create frames by shifting bits or distributing intensity
+-            # This is a very basic example and will likely need a more advanced algorithm
+-            # for proper temporal dithering or frame sequencing.
+-            
+-            # For demonstration, let's just create slightly varied 8-bit versions
+-            # This is NOT a proper 12-bit emulation, but a starting point.
+-            frame = (image_12bit >> (4 - i)) & 0xFF # Shift and mask to get 8-bit component
+-            frames.append(frame.astype(np.uint8))
+-            
+-        return frames
++        """Inverts the image (negative effect).
++
++        Args:
++            image (numpy.ndarray): The input image data.
++
++        Returns:
++            numpy.ndarray: The inverted image data.
++        """
++        return np.iinfo(image.dtype).max - image
++
++    def emulate_12bit_to_8bit_frames(self, image_16bit):
++        """Emulates 12-bit exposure by generating 8-bit frames.
++
++        Args:
++            image_16bit (numpy.ndarray): The 16-bit input image data.
++
++        Returns:
++            list: A list of 8-bit NumPy arrays, each representing a frame.
++        """
++        frames_8bit = []
++        # Assuming 12-bit emulation means shifting bits to get different exposures
++        # This is a simplified emulation. For true 12-bit emulation, more complex
++        # algorithms involving exposure times and light intensity would be needed.
++        for shift in range(4):
++            # Shift right by 'shift' bits to simulate different exposures
++            frame = (image_16bit >> shift).astype(np.uint8)
++            frames_8bit.append(frame)
++        return frames_8bit
+ 
+ 
+diff --git a/app/main_window.py b/app/main_window.py
+index d4de5d5..be8098c 100644
+--- a/app/main_window.py
++++ b/app/main_window.py
+@@ -1,8 +1,14 @@
+-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QPushButton, QComboBox, QLabel, QLineEdit, QHBoxLayout, QFileDialog
++"""Main application window for the Darkroom Enlarger Application."""
++from PyQt6.QtWidgets import (
++    QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel,
++    QLineEdit, QHBoxLayout, QFileDialog
++)
+ from PyQt6.QtCore import Qt
+ 
+ class MainWindow(QMainWindow):
++    """The main window of the application, handling UI elements and user interactions."""
+     def __init__(self):
++        """Initializes the MainWindow and sets up the UI."""
+         super().__init__()
+         self.setWindowTitle("Darkroom Enlarger App")
+         self.setGeometry(100, 100, 800, 600)
+@@ -14,6 +20,7 @@ class MainWindow(QMainWindow):
+         self.setup_ui()
+ 
+     def setup_ui(self):
++        """Sets up the user interface elements and their layout."""
+         # Tone Map Selector
+         lut_layout = QHBoxLayout()
+         self.lut_label = QLabel("Tone Map LUT:")
+@@ -65,46 +72,70 @@ class MainWindow(QMainWindow):
+         self.setStyleSheet("""
+             QMainWindow { background-color: #1a1a1a; color: #f0f0f0; }
+             QLabel { color: #f0f0f0; }
+-            QPushButton { background-color: #333333; color: #f0f0f0; border: 1px solid #555555; padding: 10px; }
++            QPushButton { background-color: #333333; color: #f0f0f0; \
++                          border: 1px solid #555555; padding: 10px; }
+             QPushButton:hover { background-color: #555555; }
+-            QComboBox { background-color: #333333; color: #f0f0f0; border: 1px solid #555555; padding: 5px; }
+-            QLineEdit { background-color: #333333; color: #f0f0f0; border: 1px solid #555555; padding: 5px; }
++            QComboBox { background-color: #333333; color: #f0f0f0; \
++                        border: 1px solid #555555; padding: 5px; }
++            QLineEdit { background-color: #333333; color: #f0f0f0; \
++                        border: 1px solid #555555; padding: 5px; }
+         """)
+ 
+         # Example of red-on-black for critical elements (adjust as needed)
+         self.stop_button.setStyleSheet("""
+-            QPushButton { background-color: #800000; color: #ffcccc; border: 1px solid #ff0000; padding: 10px; }
++            QPushButton { background-color: #800000; color: #ffcccc; \
++                          border: 1px solid #ff0000; padding: 10px; }
+             QPushButton:hover { background-color: #a00000; }
+         """)
+ 
+     def get_image_file(self):
++        """Opens a file dialog to select a 16-bit TIFF image.
++
++        Returns:
++            str: The path to the selected image file, or None if no file is selected.
++        """
+         file_dialog = QFileDialog()
+-        file_path, _ = file_dialog.getOpenFileName(self, "Select 16-bit TIFF Image", "", "TIFF Images (*.tif *.tiff)")
++        file_path, _ = file_dialog.getOpenFileName(
++            self, "Select 16-bit TIFF Image", "", "TIFF Images (*.tif *.tiff)"
++        )
+         if file_path:
+             self.image_path_display.setText(file_path)
+             return file_path
+         return None
+ 
++    def get_lut_file(self):
++        """Opens a file dialog to select a LUT file.
++
++        Returns:
++            str: The path to the selected LUT file, or None if no file is selected.
++        """
++        file_dialog = QFileDialog()
++        file_path, _ = file_dialog.getOpenFileName(
++            self, "Select LUT File", "", "LUT Files (*.tif *.tiff)"
++        )
++        if file_path:
++            self.lut_path_display.setText(file_path)
++            return file_path
++        return None
++
+     def update_processing_summary(self, text):
++        """Updates the processing summary label with the given text.
++
++        Args:
++            text (str): The text to display in the processing summary.
++        """
+         self.processing_summary_label.setText(f"Processing Summary: {text}")
+ 
+     #def populate_lut_combo(self, lut_files):
++    #    """Populates the LUT combo box with available LUT files.
++    #
++    #    Args:
++    #        lut_files (list): A list of LUT filenames.
++    #    """
+     #    self.lut_combo.clear()
+     #    if not lut_files:
+     #        self.lut_combo.addItem("No LUTs Found")
+     #    else:
+     #        self.lut_combo.addItems(lut_files)
+ 
+-    def get_lut_file(self):
+-        file_dialog = QFileDialog()
+-        file_path, _ = file_dialog.getOpenFileName(
+-            self,
+-            "Select Tone Mapping LUT",
+-            "",
+-            "TIFF LUT Files (*.tif *.tiff)"
+-        )
+-        if file_path:
+-            self.lut_path_display.setText(file_path)
+-            return file_path
+-        return None
+ 
