@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
         display_image = image_data
         
         h, w = display_image.shape
-        q_image = QImage(display_image.data, w, h, QImage.Format.Format_Grayscale8)
+        q_image = QImage(display_image.data, w, h, QImage.Format.Format_Grayscale16)
         pixmap = QPixmap.fromImage(q_image)
 
         # Scale pixmap to fit the label while maintaining aspect ratio
@@ -156,17 +156,3 @@ class MainWindow(QMainWindow):
         )
         self.preview_label.setPixmap(scaled_pixmap)
         self.preview_label.setText("") # Clear text once image is displayed
-
-    #def populate_lut_combo(self, lut_files):
-    #    """Populates the LUT combo box with available LUT files.
-    #
-    #    Args:
-    #        lut_files (list): A list of LUT filenames.
-    #    """
-    #    self.lut_combo.clear()
-    #    if not lut_files:
-    #        self.lut_combo.addItem("No LUTs Found")
-    #    else:
-    #        self.lut_combo.addItems(lut_files)
-
-
