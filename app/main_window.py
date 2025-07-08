@@ -139,13 +139,20 @@ class MainWindow(QMainWindow):
             self.preview_label.clear()
             return
 
-        # Normalize 16-bit image to 8-bit for display
-        # Scale to 0-255 and convert to uint8
-        # display_image = (image_data / np.max(image_data) * 255).astype(np.uint8)
-        display_image = image_data.astype(np.uint16)
-        
-        h, w = display_image.shape
-        q_image = QImage(display_image.data, w, h, QImage.Format.Format_Grayscale16)
+        h, w = image_data.shape
+        # Ensure data is contiguous for QImage
+        display_image = np.ascontiguousarray(image_data)
+
+        # Determine the format based on bit depth
+        if image_data.dtype == np.uint16:
+            q_image = QImage(display_image.data, w, h, w * 2, QImage.Format.Format_Grayscale16)
+        elif image_data.dtype == np.uint8:
+            q_image = QImage(display_image.data, w, h, w * 1, QImage.Format.Format_Grayscale8)
+        else:
+            # Handle other cases or convert to a supported format
+            self.preview_label.setText("Unsupported image format")
+            return
+
         pixmap = QPixmap.fromImage(q_image)
 
         # Scale pixmap to fit the label while maintaining aspect ratio
@@ -156,3 +163,5 @@ class MainWindow(QMainWindow):
         )
         self.preview_label.setPixmap(scaled_pixmap)
         self.preview_label.setText("") # Clear text once image is displayed
+
+
