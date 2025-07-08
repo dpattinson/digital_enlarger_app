@@ -1,4 +1,5 @@
 """Image processing functionalities for the Darkroom Enlarger Application."""
+import os
 import numpy as np
 import tifffile
 
@@ -9,15 +10,39 @@ class ImageProcessor:
         pass
 
     def load_image(self, image_path):
-        """Loads a 16-bit TIFF image.
+        """Loads a 16-bit grayscale TIFF image and validates its format.
 
         Args:
             image_path (str): The path to the 16-bit TIFF image file.
 
         Returns:
             numpy.ndarray: The loaded image data as a NumPy array.
+
+        Raises:
+            ValueError: If the image is not a 16-bit grayscale TIFF.
+            FileNotFoundError: If the image file does not exist.
         """
-        return tifffile.imread(image_path)
+        # Check if file exists
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image file not found: {image_path}")
+        
+        # Check if file is a TIFF file
+        if not image_path.lower().endswith(('.tif', '.tiff')):
+            raise ValueError("Input file must be a TIFF file (.tif or .tiff)")
+        
+        try:
+            image = tifffile.imread(image_path)
+        except Exception as e:
+            raise ValueError(f"Failed to read TIFF file: {e}")
+
+        # Validate image format
+        if image.dtype != np.uint16:
+            raise ValueError(f"Input image must be 16-bit (uint16). Found: {image.dtype}")
+        
+        if image.ndim != 2:  # Grayscale images have 2 dimensions (height, width)
+            raise ValueError(f"Input image must be grayscale (2D). Found {image.ndim} dimensions with shape {image.shape}")
+
+        return image
 
     def apply_lut(self, image, lut):
         """Applies a Look-Up Table (LUT) to the image.
@@ -70,7 +95,7 @@ class ImageProcessor:
         # This is a simplified emulation. For true 12-bit emulation, more complex
         # algorithms involving exposure times and light intensity would be needed.
         for shift in range(4):
-            # Shift right by 'shift' bits to simulate different exposures
+            # Shift right by \'shift\' bits to simulate different exposures
             frame = (image_16bit >> shift).astype(np.uint8)
             frames_8bit.append(frame)
         return frames_8bit
