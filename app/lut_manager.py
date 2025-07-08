@@ -4,14 +4,28 @@ import numpy as np
 
 class LUTManager:
     """Manages loading and validation of Look-Up Table (LUT) files."""
-    def __init__(self, lut_dir):
+    def __init__(self, lut_dir, file_checker=None, dir_lister=None, tiff_reader=None):
+        """Initializes the LUTManager.
+        
+        Args:
+            lut_dir (str): Directory containing LUT files.
+            file_checker (callable, optional): Function to check if file/dir exists.
+                                             Defaults to os.path.exists.
+            dir_lister (callable, optional): Function to list directory contents.
+                                           Defaults to os.listdir.
+            tiff_reader (callable, optional): Function to read TIFF files.
+                                            Defaults to tifffile.imread.
+        """
         self.lut_dir = lut_dir
+        self.file_checker = file_checker or os.path.exists
+        self.dir_lister = dir_lister or os.listdir
+        self.tiff_reader = tiff_reader or tifffile.imread
         self.lut_files = self._find_lut_files()
 
     def _find_lut_files(self):
-        if not os.path.exists(self.lut_dir):
+        if not self.file_checker(self.lut_dir):
             return []
-        return [f for f in os.listdir(self.lut_dir) if f.endswith(('.tif', '.tiff'))]
+        return [f for f in self.dir_lister(self.lut_dir) if f.endswith(('.tif', '.tiff'))]
 
     def get_lut_names(self):
         return self.lut_files
@@ -36,7 +50,7 @@ class LUTManager:
             full_path = os.path.join(self.lut_dir, lut_path)
         
         # Check if file exists
-        if not os.path.exists(full_path):
+        if not self.file_checker(full_path):
             raise FileNotFoundError(f"LUT file not found: {full_path}")
         
         # Check if file is a TIFF file
@@ -44,7 +58,7 @@ class LUTManager:
             raise ValueError("LUT file must be a TIFF file (.tif or .tiff)")
         
         try:
-            lut = tifffile.imread(full_path)
+            lut = self.tiff_reader(full_path)
         except Exception as e:
             raise ValueError(f"Failed to read TIFF LUT file: {e}")
         

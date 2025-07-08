@@ -5,9 +5,17 @@ import tifffile
 
 class ImageProcessor:
     """Handles loading, processing, and converting images for display."""
-    def __init__(self):
-        """Initializes the ImageProcessor."""
-        pass
+    def __init__(self, file_checker=None, tiff_reader=None):
+        """Initializes the ImageProcessor.
+        
+        Args:
+            file_checker (callable, optional): Function to check if file exists. 
+                                             Defaults to os.path.exists.
+            tiff_reader (callable, optional): Function to read TIFF files.
+                                            Defaults to tifffile.imread.
+        """
+        self.file_checker = file_checker or os.path.exists
+        self.tiff_reader = tiff_reader or tifffile.imread
 
     def load_image(self, image_path):
         """Loads a 16-bit grayscale TIFF image and validates its format.
@@ -23,7 +31,7 @@ class ImageProcessor:
             FileNotFoundError: If the image file does not exist.
         """
         # Check if file exists
-        if not os.path.exists(image_path):
+        if not self.file_checker(image_path):
             raise FileNotFoundError(f"Image file not found: {image_path}")
         
         # Check if file is a TIFF file
@@ -31,7 +39,7 @@ class ImageProcessor:
             raise ValueError("Input file must be a TIFF file (.tif or .tiff)")
         
         try:
-            image = tifffile.imread(image_path)
+            image = self.tiff_reader(image_path)
         except Exception as e:
             raise ValueError(f"Failed to read TIFF file: {e}")
 
