@@ -146,8 +146,6 @@ class MainWindow(QMainWindow):
         # Determine the format based on bit depth
         if image_data.dtype == np.uint16:
             q_image = QImage(display_image.data, w, h, w * 2, QImage.Format.Format_Grayscale16)
-        elif image_data.dtype == np.uint8:
-            q_image = QImage(display_image.data, w, h, w * 1, QImage.Format.Format_Grayscale8)
         else:
             # Handle other cases or convert to a supported format
             self.preview_label.setText("Unsupported image format")
