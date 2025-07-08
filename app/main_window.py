@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
         # Normalize 16-bit image to 8-bit for display
         # Scale to 0-255 and convert to uint8
         # display_image = (image_data / np.max(image_data) * 255).astype(np.uint8)
-        display_image = image_data
+        display_image = image_data.astype(np.uint16)
         
         h, w = display_image.shape
         q_image = QImage(display_image.data, w, h, QImage.Format.Format_Grayscale16)
