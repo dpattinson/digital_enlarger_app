@@ -226,3 +226,25 @@ class MainWindow(QMainWindow):
         self.preview_label.setText("")  # Clear text once image is displayed
 
 
+
+    def display_preview_pixmap(self, pixmap):
+        """Display a pre-prepared pixmap in the preview area.
+        
+        This method is used by the new preview manager for optimized preview display.
+        
+        Args:
+            pixmap (QPixmap): Pre-prepared pixmap for preview display
+        """
+        if pixmap is None or pixmap.isNull():
+            self.preview_label.clear()
+            return
+            
+        # Scale pixmap to fit within the 16:9 container while preserving aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            self.preview_label.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.preview_label.setPixmap(scaled_pixmap)
+        self.preview_label.setText("")  # Clear text once image is displayed
+
