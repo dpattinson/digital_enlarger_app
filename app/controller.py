@@ -1,15 +1,18 @@
-"""Controller for the Darkroom Enlarger Application."""
+"""Controller for the Darkroom Enlarger Application with separated preview/print concerns."""
 import os
 import cv2
 import tifffile
 from app.lut_manager import LUTManager
 from app.image_processor import ImageProcessor
 from app.display_window import DisplayWindow
+from app.preview_image_manager import PreviewImageManager
+from app.print_image_manager import PrintImageManager
 
 class Controller:
-    """Handles the logic and interactions between the main window, image processor, and LUT manager."""
+    """Handles the logic and interactions with separated preview and print processing pipelines."""
+    
     def __init__(self, main_window):
-        """Initializes the Controller with the main application window.
+        """Initializes the Controller with separated preview and print managers.
 
         Args:
             main_window: The main application window (MainWindow instance).
@@ -18,9 +21,12 @@ class Controller:
         self.lut_manager = LUTManager(os.path.join(os.path.dirname(__file__), "..", "luts"))
         self.image_processor = ImageProcessor()
         self.display_window = DisplayWindow()
+        
+        # Separate managers for preview and print concerns
+        self.preview_manager = PreviewImageManager()
+        self.print_manager = PrintImageManager()
 
         self.connect_signals()
-        #self.populate_luts()
 
         self.current_image_path = None
         self.loaded_image = None
@@ -34,137 +40,160 @@ class Controller:
         self.main_window.print_button.clicked.connect(self.start_print)
         self.main_window.stop_button.clicked.connect(self.stop_print)
 
-    #def populate_luts(self):
-    #    lut_names = self.lut_manager.get_lut_names()
-    #    self.main_window.populate_lut_combo(lut_names)
-
     def select_image(self):
         """Handles image selection from the file dialog and loads the image."""
         file_path = self.main_window.get_image_file()
         if file_path:
             self.current_image_path = file_path
-            self.main_window.update_processing_summary(
+            self.main_window.add_log_entry(
                 f"Image selected: {os.path.basename(file_path)}"
             )
             try:
                 # Load image and check if rotation was applied
-                original_image = self.image_processor.cv2_reader(
-                    self.current_image_path, cv2.IMREAD_UNCHANGED
-                )
-                
-                self.loaded_image = self.image_processor.load_image(
-                    self.current_image_path
-                )
+                original_image = self.image_processor.cv2_reader(file_path, cv2.IMREAD_UNCHANGED)
+                self.loaded_image = self.image_processor.load_image(file_path)
                 
                 # Check if rotation was applied and log it
                 if (original_image is not None and 
                     self.image_processor.is_portrait_orientation(original_image)):
-                    self.main_window.update_processing_summary(
+                    self.main_window.add_log_entry(
                         "Portrait image detected - rotated 90° clockwise to landscape"
                     )
                 
-                self.main_window.update_processing_summary("Image loaded successfully.")
-                self.main_window.display_image_in_preview(self.loaded_image)
-            except (FileNotFoundError, ValueError, tifffile.TiffFileError) as e:
-                self.main_window.update_processing_summary(f"Error loading image: {e}")
-                self.loaded_image = None
-                self.main_window.display_image_in_preview(None)
+                # Update preview display using preview manager
+                self.update_preview_display()
+                
+            except (ValueError, TypeError, RuntimeError) as e:
+                self.main_window.add_log_entry(f"Error loading image: {e}")
+
+    def update_preview_display(self):
+        """Update the preview display using the preview manager (fast, preview-optimized)."""
+        if self.loaded_image is None:
+            return
+            
+        try:
+            # Use preview manager for fast preview display
+            preview_pixmap = self.preview_manager.create_preview_pixmap(
+                self.loaded_image, 
+                container_size=(400, 225)  # 16:9 aspect ratio container (matches 8K screen 7680×4320)
+            )
+            
+            # Display in preview area
+            self.main_window.display_preview_pixmap(preview_pixmap)
+            self.main_window.add_log_entry("Preview updated")
+            
+        except (ValueError, TypeError, RuntimeError) as e:
+            self.main_window.add_log_entry(f"Error updating preview: {e}")
 
     def select_lut(self):
         """Handles LUT selection from the file dialog and loads the LUT."""
-        lut_file = self.main_window.get_lut_file()
-        if lut_file:
+        file_path = self.main_window.get_lut_file()
+        if file_path:
+            self.main_window.add_log_entry(
+                f"LUT selected: {os.path.basename(file_path)}"
+            )
             try:
-                self.loaded_lut = self.lut_manager.load_lut(lut_file)
-                self.main_window.update_processing_summary(
-                    f"LUT selected: {os.path.basename(lut_file)}"
-                )
-            except (FileNotFoundError, ValueError, tifffile.TiffFileError) as e:
-                self.main_window.update_processing_summary(f"Error loading LUT: {e}")
-                self.loaded_lut = None
-        else:
-            self.loaded_lut = None
-            self.main_window.update_processing_summary("No LUT selected.")
+                self.loaded_lut = self.lut_manager.load_lut(file_path)
+                self.main_window.add_log_entry("LUT loaded successfully")
+            except (ValueError, TypeError, RuntimeError) as e:
+                self.main_window.add_log_entry(f"Error loading LUT: {e}")
 
     def process_image(self):
-        """Processes the loaded image by applying LUT and inversion, then displays the result."""
+        """Process the image for preview display (legacy method for compatibility)."""
         if self.loaded_image is None:
-            self.main_window.update_processing_summary("Please load an image first.")
+            self.main_window.add_log_entry("Please load an image first.")
             return
         if self.loaded_lut is None:
-            self.main_window.update_processing_summary("Please select a LUT first.")
+            self.main_window.add_log_entry("Please select a LUT first.")
             return
 
-        self.main_window.update_processing_summary("Processing image...")
         try:
-            # Apply LUT
-            processed_image = self.image_processor.apply_lut(
-                self.loaded_image, self.loaded_lut
-            )
-            self.main_window.update_processing_summary("LUT applied.")
-
-            # Invert image
-            inverted_image = self.image_processor.invert_image(processed_image)
-            self.main_window.update_processing_summary("Image inverted.")
-
-            # Display the processed image in the preview area
-            self.main_window.display_image_in_preview(inverted_image)
-            self.main_window.update_processing_summary("Image processed and displayed in preview.")
+            # For preview processing, we just update the preview display
+            self.update_preview_display()
+            self.main_window.add_log_entry("Image processed and displayed in preview.")
 
         except (ValueError, TypeError, RuntimeError) as e:
-            self.main_window.update_processing_summary(f"Error during processing: {e}")
+            self.main_window.add_log_entry(f"Error during processing: {e}")
 
     def start_print(self):
-        """Initiates the image processing and display loop for printing."""
+        """Initiates the high-quality print processing and display loop."""
         if self.loaded_image is None:
-            self.main_window.update_processing_summary("Please load an image first.")
+            self.main_window.add_log_entry("Please load an image first.")
             return
         if self.loaded_lut is None:
-            self.main_window.update_processing_summary("Please select a LUT first.")
+            self.main_window.add_log_entry("Please select a LUT first.")
             return
 
-        self.main_window.update_processing_summary("Processing image...")
+        self.main_window.add_log_entry("Processing image for printing...")
         try:
-            # Apply LUT
-            processed_image = self.image_processor.apply_lut(
-                self.loaded_image, self.loaded_lut
+            # Use print manager for high-quality print processing
+            print_ready_image = self.print_manager.prepare_print_image(
+                self.loaded_image, 
+                self.loaded_lut,
+                apply_squashing=False  # No squashing as per requirements
             )
-            self.main_window.update_processing_summary("LUT applied.")
-
-            # Invert image
-            inverted_image = self.image_processor.invert_image(processed_image)
-            self.main_window.update_processing_summary("Image inverted.")
-
-            # Emulate 12-bit frames
-            frames_8bit = self.image_processor.emulate_12bit_to_8bit_frames(
-                inverted_image
-            )
-            self.main_window.update_processing_summary(
-                f"Generated {len(frames_8bit)} 8-bit frames for 12-bit emulation."
+            
+            self.main_window.add_log_entry("Print processing completed")
+            
+            # Generate frames for 12-bit emulation
+            frames_8bit = self.print_manager.emulate_12bit_to_8bit_frames(print_ready_image)
+            self.main_window.add_log_entry(
+                f"Generated {len(frames_8bit)} 8-bit frames for 12-bit emulation"
             )
 
+            # Get exposure duration from UI
             exposure_duration_str = self.main_window.exposure_input.text()
             try:
                 exposure_duration_s = float(exposure_duration_str)
                 loop_duration_ms = int(exposure_duration_s * 1000)
             except ValueError:
-                self.main_window.update_processing_summary("Invalid exposure duration. "
-                                                            "Using default 30s.")
-                loop_duration_ms = 30000 # Default to 30 seconds
+                self.main_window.add_log_entry("Invalid exposure duration. Using default 30s.")
+                loop_duration_ms = 30000  # Default to 30 seconds
 
+            # Configure and start display
             self.display_window.set_frames(frames_8bit, loop_duration_ms)
             self.display_window.show_on_secondary_monitor()
             self.display_window.start_display_loop()
-            self.main_window.update_processing_summary("Display loop started.")
+            self.main_window.add_log_entry("Print started on secondary monitor")
 
         except (ValueError, TypeError, RuntimeError) as e:
-            self.main_window.update_processing_summary(f"Error during processing: {e}")
+            self.main_window.add_log_entry(f"Error during print processing: {e}")
 
     def stop_print(self):
         """Stops the image display loop."""
         self.display_window.stop_display_loop()
-        self.main_window.update_processing_summary("Display loop stopped.")
-
-
-
+        self.main_window.add_log_entry("Print stopped")
+        
+    def get_preview_info(self):
+        """Get information about current preview processing.
+        
+        Returns:
+            dict: Preview processing information
+        """
+        if self.loaded_image is None:
+            return {'error': 'No image loaded'}
+            
+        # Get preview info from preview manager
+        preview_image = self.preview_manager.prepare_preview_image(self.loaded_image)
+        return self.preview_manager.get_preview_info(self.loaded_image, preview_image)
+        
+    def get_print_info(self):
+        """Get information about current print processing capabilities.
+        
+        Returns:
+            dict: Print processing information
+        """
+        if self.loaded_image is None:
+            return {'error': 'No image loaded'}
+            
+        # Get print info from print manager
+        return self.print_manager.calculate_8k_display_info(self.loaded_image)
+        
+    def validate_print_readiness(self):
+        """Validate if current image and LUT are ready for printing.
+        
+        Returns:
+            dict: Validation results
+        """
+        return self.print_manager.validate_print_readiness(self.loaded_image, self.loaded_lut)
 
