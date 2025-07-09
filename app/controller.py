@@ -75,7 +75,7 @@ class Controller:
             # Use preview manager for fast preview display
             preview_pixmap = self.preview_manager.create_preview_pixmap(
                 self.loaded_image, 
-                container_size=(400, 300)  # 16:9 aspect ratio container
+                container_size=(400, 225)  # 16:9 aspect ratio container (matches 8K screen 7680×4320)
             )
             
             # Display in preview area

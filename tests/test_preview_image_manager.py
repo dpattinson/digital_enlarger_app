@@ -71,7 +71,7 @@ class TestPreviewImageManager(unittest.TestCase):
         manager = PreviewImageManager(cv2_resize=mock_resize)
         
         # WHEN: Preparing preview image
-        result = manager.prepare_preview_image(large_image, container_size=(400, 300))
+        result = manager.prepare_preview_image(large_image, container_size=(400, 225))
         
         # THEN: cv2.resize was called with correct parameters
         mock_resize.assert_called_once()
@@ -114,15 +114,15 @@ class TestPreviewImageManager(unittest.TestCase):
         """
         # GIVEN: Portrait image (taller than wide)
         image_shape = (1200, 800)  # height, width
-        container_size = (400, 300)  # width, height
+        container_size = (400, 225)  # width, height (16:9 aspect ratio)
         
         # WHEN: Calculating preview size
         result = self.manager.calculate_preview_size(image_shape, container_size)
         
         # THEN: Size maintains aspect ratio and fits in container
         width, height = result
-        self.assertEqual(width, 200)  # Limited by height: 300 * (800/1200) = 200
-        self.assertEqual(height, 300)  # Uses full container height
+        self.assertEqual(width, 150)  # Limited by height: 225 * (800/1200) = 150
+        self.assertEqual(height, 225)  # Uses full container height
         
         # Verify aspect ratio is maintained
         original_ratio = 800 / 1200
@@ -137,7 +137,7 @@ class TestPreviewImageManager(unittest.TestCase):
         """
         # GIVEN: Landscape image (wider than tall)
         image_shape = (600, 1200)  # height, width
-        container_size = (400, 300)  # width, height
+        container_size = (400, 225)  # width, height (16:9 aspect ratio)
         
         # WHEN: Calculating preview size
         result = self.manager.calculate_preview_size(image_shape, container_size)
