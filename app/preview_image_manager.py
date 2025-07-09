@@ -25,7 +25,7 @@ class PreviewImageManager:
         """
         self.cv2_resize = cv2_resize or cv2.resize
         
-    def prepare_preview_image(self, image_data, container_size=(400, 300)):
+    def prepare_preview_image(self, image_data, container_size=(768, 432)):
         """Prepare an image for fast preview display.
         
         Optimizes the image for preview display with fast scaling and good-enough quality.
@@ -89,7 +89,7 @@ class PreviewImageManager:
         
         return (new_width, new_height)
         
-    def create_preview_pixmap(self, image_data, container_size=(400, 300)):
+    def create_preview_pixmap(self, image_data, container_size=(768, 432)):
         """Create a QPixmap optimized for preview display.
         
         Args:
@@ -164,7 +164,7 @@ class PreviewImageManager:
             'interpolation': 'INTER_LINEAR'
         }
         
-    def validate_preview_readiness(self, image_data, container_size=(400, 300)):
+    def validate_preview_readiness(self, image_data, container_size=(768, 432)):
         """Validate if image is ready for preview processing.
         
         Args:
