@@ -1,11 +1,12 @@
 """Main application window for the Darkroom Enlarger Application."""
 from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel,
-    QLineEdit, QHBoxLayout, QFileDialog
+    QLineEdit, QHBoxLayout, QFileDialog, QTextEdit
 )
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
 import numpy as np
+from datetime import datetime
 from app.image_display_manager import ImageDisplayManager
 
 class MainWindow(QMainWindow):
@@ -73,9 +74,27 @@ class MainWindow(QMainWindow):
         process_layout.addStretch()  # Add stretch to left-align the button
         self.layout.addLayout(process_layout)
 
-        # Processing Summary
-        self.processing_summary_label = QLabel("Processing Summary: Ready")
-        self.layout.addWidget(self.processing_summary_label)
+        # Processing Summary - Scrollable Log
+        processing_log_label = QLabel("Processing Log:")
+        self.layout.addWidget(processing_log_label)
+        
+        self.processing_log = QTextEdit()
+        self.processing_log.setReadOnly(True)
+        self.processing_log.setMaximumHeight(120)  # Limit height to keep it compact
+        self.processing_log.setStyleSheet("""
+            QTextEdit { 
+                background-color: #2a2a2a; 
+                color: #f0f0f0; 
+                border: 1px solid #555555; 
+                padding: 5px;
+                font-family: monospace;
+                font-size: 10px;
+            }
+        """)
+        self.layout.addWidget(self.processing_log)
+        
+        # Initialize with ready message
+        self.add_log_entry("Application ready")
 
         # Print Control
         print_control_layout = QHBoxLayout()
@@ -140,13 +159,32 @@ class MainWindow(QMainWindow):
             return file_path
         return None
 
-    def update_processing_summary(self, text):
-        """Updates the processing summary label with the given text.
+    def add_log_entry(self, text):
+        """Adds a new entry to the processing log with timestamp.
 
         Args:
-            text (str): The text to display in the processing summary.
+            text (str): The text to add to the processing log.
         """
-        self.processing_summary_label.setText(f"Processing Summary: {text}")
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        log_entry = f"[{timestamp}] {text}"
+        self.processing_log.append(log_entry)
+        
+        # Auto-scroll to bottom to show latest entry
+        scrollbar = self.processing_log.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    def update_processing_summary(self, text):
+        """Updates the processing log with the given text (maintains backward compatibility).
+
+        Args:
+            text (str): The text to add to the processing log.
+        """
+        self.add_log_entry(text)
+
+    def clear_processing_log(self):
+        """Clears all entries from the processing log."""
+        self.processing_log.clear()
+        self.add_log_entry("Log cleared")
 
     def display_image_in_preview(self, image_data):
         """Displays the given image data in the preview_label.
