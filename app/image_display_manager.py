@@ -328,3 +328,301 @@ class ImageDisplayManager:
             'dynamic_range': int(np.max(image_data) - np.min(image_data))
         }
 
+
+    # Display Optimization Methods for 7680x4320 Secondary Display
+    
+    DISPLAY_8K_WIDTH = 7680
+    DISPLAY_8K_HEIGHT = 4320
+    DISPLAY_8K_SIZE = (DISPLAY_8K_WIDTH, DISPLAY_8K_HEIGHT)
+    
+    def squash_image_for_display(self, image_data: np.ndarray, 
+                               compression_ratio: int = 3) -> np.ndarray:
+        """Compress image for optimal display on monochrome screens.
+        
+        Adapted from LCD-Alt-Print-Tools for 8K display optimization.
+        Compresses image width to optimize for display characteristics.
+        
+        Args:
+            image_data: Input grayscale image data.
+            compression_ratio: Compression factor for width (default: 3).
+            
+        Returns:
+            np.ndarray: Compressed image optimized for display.
+            
+        Raises:
+            ValueError: If image data is invalid.
+        """
+        if not self.validate_image_data(image_data):
+            raise ValueError("Invalid image data for squashing")
+        
+        height, width = image_data.shape
+        
+        # Calculate new width after compression
+        new_width = width // compression_ratio
+        if new_width == 0:
+            new_width = 1
+        
+        # Create output image
+        squashed_image = np.zeros((height, new_width), dtype=image_data.dtype)
+        
+        # Compress width by averaging pixels
+        for y in range(height):
+            for x in range(new_width):
+                # Calculate source pixel range
+                start_x = x * compression_ratio
+                end_x = min(start_x + compression_ratio, width)
+                
+                # Average pixels in the compression window
+                pixel_sum = 0
+                pixel_count = 0
+                for src_x in range(start_x, end_x):
+                    pixel_sum += image_data[y, src_x]
+                    pixel_count += 1
+                
+                if pixel_count > 0:
+                    squashed_image[y, x] = pixel_sum // pixel_count
+        
+        return squashed_image
+    
+    def pad_image_for_8k_display(self, image_data: np.ndarray, 
+                                center_image: bool = True,
+                                border_color: str = "white") -> np.ndarray:
+        """Pad image to fit 7680x4320 display with white borders.
+        
+        Adapted from LCD-Alt-Print-Tools for 8K display dimensions.
+        Centers image and adds white padding to fill display area.
+        
+        Args:
+            image_data: Input image data to pad.
+            center_image: Whether to center the image (default: True).
+            border_color: Border color - only "white" supported (default: "white").
+            
+        Returns:
+            np.ndarray: Padded image sized for 8K display.
+            
+        Raises:
+            ValueError: If image data is invalid or border_color is not "white".
+        """
+        if not self.validate_image_data(image_data):
+            raise ValueError("Invalid image data for padding")
+        
+        if border_color != "white":
+            raise ValueError("Only white borders are supported")
+        
+        height, width = image_data.shape
+        
+        # Determine border fill value based on image bit depth
+        if image_data.dtype == np.uint16:
+            border_value = 65535  # White for 16-bit
+        else:
+            border_value = 255    # White for 8-bit
+        
+        # If image is already larger than display, scale it down first
+        if width > self.DISPLAY_8K_WIDTH or height > self.DISPLAY_8K_HEIGHT:
+            # Calculate scaling to fit within display
+            scale_factor = min(self.DISPLAY_8K_WIDTH / width, self.DISPLAY_8K_HEIGHT / height)
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            
+            # Scale down the image
+            image_data = cv2.resize(image_data, (new_width, new_height), 
+                                  interpolation=cv2.INTER_AREA)
+            height, width = image_data.shape
+        
+        # Calculate padding needed
+        if center_image:
+            # Center the image
+            pad_x = (self.DISPLAY_8K_WIDTH - width) // 2
+            pad_y = (self.DISPLAY_8K_HEIGHT - height) // 2
+            
+            # Handle odd padding
+            pad_x_remainder = (self.DISPLAY_8K_WIDTH - width) % 2
+            pad_y_remainder = (self.DISPLAY_8K_HEIGHT - height) % 2
+        else:
+            # Align to top-left
+            pad_x = 0
+            pad_y = 0
+            pad_x_remainder = 0
+            pad_y_remainder = 0
+        
+        # Create padded image filled with white
+        padded_image = np.full((self.DISPLAY_8K_HEIGHT, self.DISPLAY_8K_WIDTH), 
+                              border_value, dtype=image_data.dtype)
+        
+        # Place the original image in the padded area
+        start_y = pad_y
+        end_y = start_y + height
+        start_x = pad_x
+        end_x = start_x + width
+        
+        padded_image[start_y:end_y, start_x:end_x] = image_data
+        
+        return padded_image
+    
+    def prepare_image_for_8k_display(self, image_data: np.ndarray,
+                                   apply_squashing: bool = False,
+                                   compression_ratio: int = 3,
+                                   center_image: bool = True) -> np.ndarray:
+        """Complete preparation pipeline for 8K display output.
+        
+        Combines squashing and padding operations for optimal 8K display.
+        
+        Args:
+            image_data: Input image data.
+            apply_squashing: Whether to apply image squashing (default: False).
+            compression_ratio: Compression ratio for squashing (default: 3).
+            center_image: Whether to center the image (default: True).
+            
+        Returns:
+            np.ndarray: Image ready for 8K display.
+            
+        Raises:
+            ValueError: If image data is invalid.
+        """
+        if not self.validate_image_data(image_data):
+            raise ValueError("Invalid image data for 8K display preparation")
+        
+        processed_image = image_data.copy()
+        
+        # Apply squashing if requested
+        if apply_squashing:
+            processed_image = self.squash_image_for_display(processed_image, compression_ratio)
+        
+        # Pad to 8K display dimensions with white borders
+        display_ready_image = self.pad_image_for_8k_display(processed_image, center_image)
+        
+        return display_ready_image
+    
+    def calculate_8k_display_info(self, image_data: Optional[np.ndarray],
+                                apply_squashing: bool = False,
+                                compression_ratio: int = 3) -> dict:
+        """Calculate display information specifically for 8K display output.
+        
+        Args:
+            image_data: The image data to analyze.
+            apply_squashing: Whether squashing will be applied.
+            compression_ratio: Compression ratio for squashing.
+            
+        Returns:
+            dict: 8K display-specific information.
+        """
+        result = {
+            'is_valid': False,
+            'original_size': (0, 0),
+            'squashed_size': (0, 0),
+            'final_size': self.DISPLAY_8K_SIZE,
+            'padding_info': {'x': 0, 'y': 0},
+            'memory_usage_mb': 0.0,
+            'compression_applied': apply_squashing,
+            'compression_ratio': compression_ratio if apply_squashing else 1,
+            'scaling_applied': False,
+            'scaling_factor': 1.0
+        }
+        
+        if not self.validate_image_data(image_data):
+            return result
+        
+        try:
+            height, width = image_data.shape
+            original_size = (width, height)
+            
+            # Calculate squashed size if squashing is applied
+            if apply_squashing:
+                squashed_width = width // compression_ratio
+                squashed_size = (squashed_width, height)
+            else:
+                squashed_size = original_size
+            
+            # Check if scaling will be needed
+            final_width, final_height = squashed_size
+            scaling_applied = (final_width > self.DISPLAY_8K_WIDTH or 
+                             final_height > self.DISPLAY_8K_HEIGHT)
+            
+            if scaling_applied:
+                scale_factor = min(self.DISPLAY_8K_WIDTH / final_width, 
+                                 self.DISPLAY_8K_HEIGHT / final_height)
+                final_width = int(final_width * scale_factor)
+                final_height = int(final_height * scale_factor)
+            else:
+                scale_factor = 1.0
+            
+            # Calculate padding
+            pad_x = (self.DISPLAY_8K_WIDTH - final_width) // 2
+            pad_y = (self.DISPLAY_8K_HEIGHT - final_height) // 2
+            
+            # Calculate memory usage for final 8K image
+            memory_usage_mb = (self.DISPLAY_8K_WIDTH * self.DISPLAY_8K_HEIGHT * 2) / (1024 * 1024)
+            
+            result.update({
+                'is_valid': True,
+                'original_size': original_size,
+                'squashed_size': squashed_size,
+                'final_size': self.DISPLAY_8K_SIZE,
+                'padding_info': {'x': pad_x, 'y': pad_y},
+                'memory_usage_mb': memory_usage_mb,
+                'compression_applied': apply_squashing,
+                'compression_ratio': compression_ratio if apply_squashing else 1,
+                'scaling_applied': scaling_applied,
+                'scaling_factor': scale_factor
+            })
+            
+        except Exception as e:
+            result['error'] = str(e)
+        
+        return result
+    
+    def validate_8k_display_readiness(self, image_data: np.ndarray) -> dict:
+        """Validate if image is ready for 8K display and provide recommendations.
+        
+        Args:
+            image_data: Image data to validate.
+            
+        Returns:
+            dict: Validation results and recommendations.
+        """
+        result = {
+            'is_ready': False,
+            'recommendations': [],
+            'warnings': [],
+            'info': {}
+        }
+        
+        if not self.validate_image_data(image_data):
+            result['recommendations'].append("Provide valid 16-bit grayscale image data")
+            return result
+        
+        height, width = image_data.shape
+        
+        # Check image dimensions
+        if width > self.DISPLAY_8K_WIDTH * 2 or height > self.DISPLAY_8K_HEIGHT * 2:
+            result['warnings'].append(f"Image is very large ({width}x{height}). Consider pre-scaling for better performance.")
+        
+        if width < self.DISPLAY_8K_WIDTH // 4 or height < self.DISPLAY_8K_HEIGHT // 4:
+            result['warnings'].append(f"Image is quite small ({width}x{height}). Quality may be reduced when scaled to 8K.")
+        
+        # Check aspect ratio compatibility
+        image_aspect = width / height
+        display_aspect = self.DISPLAY_8K_WIDTH / self.DISPLAY_8K_HEIGHT
+        
+        if abs(image_aspect - display_aspect) > 0.5:
+            result['recommendations'].append("Consider cropping or adjusting aspect ratio for better 8K display utilization")
+        
+        # Memory usage check
+        memory_mb = image_data.nbytes / (1024 * 1024)
+        if memory_mb > 200:
+            result['warnings'].append(f"High memory usage ({memory_mb:.1f}MB). Consider optimization.")
+        
+        # Check if squashing might be beneficial
+        if width > self.DISPLAY_8K_WIDTH:
+            result['recommendations'].append("Consider applying image squashing for better display optimization")
+        
+        result['is_ready'] = True
+        result['info'] = {
+            'dimensions': (width, height),
+            'aspect_ratio': image_aspect,
+            'memory_mb': memory_mb,
+            'display_compatibility': abs(image_aspect - display_aspect) < 0.2
+        }
+        
+        return result
+
