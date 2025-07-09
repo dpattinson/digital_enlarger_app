@@ -140,7 +140,7 @@ class Controller:
             self.main_window.add_log_entry(f"Error during processing: {e}")
 
     def start_print(self):
-        """Initiates the high-quality print processing and display loop."""
+        """Initiates simplified print display - shows processed image directly."""
         if self.loaded_image is None:
             self.main_window.add_log_entry("Please load an image first.")
             return
@@ -148,29 +148,19 @@ class Controller:
             self.main_window.add_log_entry("Please select a LUT first.")
             return
 
-        self.main_window.add_log_entry("Processing image for printing...")
         try:
-            # Use processed image if available, otherwise use original image with LUT processing
+            # Use processed image if available, otherwise apply LUT and inversion
             if self.processed_image is not None:
                 # Use already processed image (LUT + inversion applied)
-                print_ready_image = self.processed_image
+                print_image = self.processed_image
                 self.main_window.add_log_entry("Using processed image for printing (LUT + inversion already applied)")
             else:
-                # Use print manager for high-quality print processing
-                print_ready_image = self.print_manager.prepare_print_image(
-                    self.loaded_image, 
-                    self.loaded_lut,
-                    apply_squashing=False  # No squashing as per requirements
-                )
+                # Apply LUT and inversion directly
+                self.main_window.add_log_entry("Applying LUT and inversion for printing...")
+                lut_applied = self.image_processor.apply_lut(self.loaded_image, self.loaded_lut)
+                print_image = self.image_processor.invert_image(lut_applied)
                 self.main_window.add_log_entry("Print processing completed")
-            
-            # Generate frames for 12-bit emulation
-            frames_8bit = self.print_manager.emulate_12bit_to_8bit_frames(print_ready_image)
-            self.main_window.add_log_entry(
-                f"Generated {len(frames_8bit)} 8-bit frames for 12-bit emulation"
-            )
-
-            # Get exposure duration from UI
+            # Get exposure duration from UI (for future use)
             exposure_duration_str = self.main_window.exposure_input.text()
             try:
                 exposure_duration_s = float(exposure_duration_str)
@@ -179,28 +169,26 @@ class Controller:
                 self.main_window.add_log_entry("Invalid exposure duration. Using default 30s.")
                 loop_duration_ms = 30000  # Default to 30 seconds
 
-            # Configure and start display based on test mode
+            # Display the processed image directly based on test mode
             if self.main_window.is_test_mode_enabled():
                 # Test mode: use windowed display
-                self.test_display_window.set_frames(frames_8bit, loop_duration_ms)
+                self.test_display_window.set_image(print_image)
                 self.test_display_window.show_test_window()
-                self.test_display_window.start_display_loop()
                 self.main_window.add_log_entry("Print started in test mode (windowed display)")
             else:
                 # Normal mode: use fullscreen secondary monitor
-                self.display_window.set_frames(frames_8bit, loop_duration_ms)
+                self.display_window.set_image(print_image)
                 self.display_window.show_on_secondary_monitor()
-                self.display_window.start_display_loop()
                 self.main_window.add_log_entry("Print started on secondary monitor")
 
         except (ValueError, TypeError, RuntimeError) as e:
             self.main_window.add_log_entry(f"Error during print processing: {e}")
 
     def stop_print(self):
-        """Stops the image display loop for both normal and test mode."""
-        # Stop both display windows to ensure clean state
-        self.display_window.stop_display_loop()
-        self.test_display_window.stop_display_loop()
+        """Stops the image display for both normal and test mode."""
+        # Clear both display windows to ensure clean state
+        self.display_window.clear_image()
+        self.test_display_window.clear_image()
         self.main_window.add_log_entry("Print stopped")
         
     def get_preview_info(self):

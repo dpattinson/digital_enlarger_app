@@ -108,3 +108,34 @@ class TestDisplayWindow(QWidget):
             'mode': 'windowed_test'
         }
 
+
+    def set_image(self, image_data):
+        """Sets and displays a 16-bit grayscale image directly.
+
+        Args:
+            image_data (numpy.ndarray): 16-bit grayscale image data to display.
+        """
+        if image_data is None:
+            self.clear_image()
+            return
+
+        h, w = image_data.shape
+        
+        # Create QImage from 16-bit grayscale data
+        q_image = QImage(image_data.data, w, h, w * 2, QImage.Format.Format_Grayscale16)
+        pixmap = QPixmap.fromImage(q_image)
+        
+        # Scale to fit the test window while maintaining aspect ratio
+        # This simulates how the image would appear on the secondary display
+        scaled_pixmap = pixmap.scaled(
+            self.image_label.size(), 
+            Qt.AspectRatioMode.KeepAspectRatio, 
+            Qt.TransformationMode.SmoothTransformation
+        )
+        
+        self.image_label.setPixmap(scaled_pixmap)
+
+    def clear_image(self):
+        """Clears the displayed image."""
+        self.image_label.clear()
+

@@ -80,3 +80,33 @@ class DisplayWindow(QWidget):
         self.showMaximized()
 
 
+
+    def set_image(self, image_data):
+        """Sets and displays a 16-bit grayscale image directly.
+
+        Args:
+            image_data (numpy.ndarray): 16-bit grayscale image data to display.
+        """
+        if image_data is None:
+            self.clear_image()
+            return
+
+        h, w = image_data.shape
+        
+        # Create QImage from 16-bit grayscale data
+        q_image = QImage(image_data.data, w, h, w * 2, QImage.Format.Format_Grayscale16)
+        pixmap = QPixmap.fromImage(q_image)
+        
+        # Scale to fit the display while maintaining aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            self.size(), 
+            Qt.AspectRatioMode.KeepAspectRatio, 
+            Qt.TransformationMode.SmoothTransformation
+        )
+        
+        self.image_label.setPixmap(scaled_pixmap)
+
+    def clear_image(self):
+        """Clears the displayed image."""
+        self.image_label.clear()
+
