@@ -215,10 +215,9 @@ class PrintImageManager:
             
         frames_8bit = []
         
-        # Generate 4 frames for 12-bit emulation
-        for shift in range(4):
-            # Shift right by 'shift' bits to simulate different exposures
-            frame = (image_16bit >> shift).astype(np.uint8)
+        # Just generate a single 8 bit version of the file for now
+        for shift in range(1):
+            frame = image_16bit.astype(np.uint8)
             frames_8bit.append(frame)
             
         return frames_8bit
