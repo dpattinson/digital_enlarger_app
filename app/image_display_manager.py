@@ -335,54 +335,6 @@ class ImageDisplayManager:
     DISPLAY_8K_HEIGHT = 4320
     DISPLAY_8K_SIZE = (DISPLAY_8K_WIDTH, DISPLAY_8K_HEIGHT)
     
-    def squash_image_for_display(self, image_data: np.ndarray, 
-                               compression_ratio: int = 3) -> np.ndarray:
-        """Compress image for optimal display on monochrome screens.
-        
-        Adapted from LCD-Alt-Print-Tools for 8K display optimization.
-        Compresses image width to optimize for display characteristics.
-        
-        Args:
-            image_data: Input grayscale image data.
-            compression_ratio: Compression factor for width (default: 3).
-            
-        Returns:
-            np.ndarray: Compressed image optimized for display.
-            
-        Raises:
-            ValueError: If image data is invalid.
-        """
-        if not self.validate_image_data(image_data):
-            raise ValueError("Invalid image data for squashing")
-        
-        height, width = image_data.shape
-        
-        # Calculate new width after compression
-        new_width = width // compression_ratio
-        if new_width == 0:
-            new_width = 1
-        
-        # Create output image
-        squashed_image = np.zeros((height, new_width), dtype=image_data.dtype)
-        
-        # Compress width by averaging pixels
-        for y in range(height):
-            for x in range(new_width):
-                # Calculate source pixel range
-                start_x = x * compression_ratio
-                end_x = min(start_x + compression_ratio, width)
-                
-                # Average pixels in the compression window
-                pixel_sum = 0
-                pixel_count = 0
-                for src_x in range(start_x, end_x):
-                    pixel_sum += image_data[y, src_x]
-                    pixel_count += 1
-                
-                if pixel_count > 0:
-                    squashed_image[y, x] = pixel_sum // pixel_count
-        
-        return squashed_image
     
     def pad_image_for_8k_display(self, image_data: np.ndarray, 
                                 center_image: bool = True,
