@@ -71,7 +71,7 @@ class TestPreviewImageManager(unittest.TestCase):
         manager = PreviewImageManager(cv2_resize=mock_resize)
         
         # WHEN: Preparing preview image
-        result = manager.prepare_preview_image(large_image, container_size=(400, 225))
+        result = manager.prepare_preview_image(large_image, container_size=(768, 432))
         
         # THEN: cv2.resize was called with correct parameters
         mock_resize.assert_called_once()
@@ -114,15 +114,15 @@ class TestPreviewImageManager(unittest.TestCase):
         """
         # GIVEN: Portrait image (taller than wide)
         image_shape = (1200, 800)  # height, width
-        container_size = (400, 225)  # width, height (16:9 aspect ratio)
+        container_size = (768, 432)  # width, height (16:9 aspect ratio - matches preview_label)
         
         # WHEN: Calculating preview size
         result = self.manager.calculate_preview_size(image_shape, container_size)
         
         # THEN: Size maintains aspect ratio and fits in container
         width, height = result
-        self.assertEqual(width, 150)  # Limited by height: 225 * (800/1200) = 150
-        self.assertEqual(height, 225)  # Uses full container height
+        self.assertEqual(width, 288)  # Limited by height: 432 * (800/1200) = 288
+        self.assertEqual(height, 432)  # Uses full container height
         
         # Verify aspect ratio is maintained
         original_ratio = 800 / 1200
@@ -137,15 +137,15 @@ class TestPreviewImageManager(unittest.TestCase):
         """
         # GIVEN: Landscape image (wider than tall)
         image_shape = (600, 1200)  # height, width
-        container_size = (400, 225)  # width, height (16:9 aspect ratio)
+        container_size = (768, 432)  # width, height (16:9 aspect ratio - matches preview_label)
         
         # WHEN: Calculating preview size
         result = self.manager.calculate_preview_size(image_shape, container_size)
         
         # THEN: Size maintains aspect ratio and fits in container
         width, height = result
-        self.assertEqual(width, 400)  # Uses full container width
-        self.assertEqual(height, 200)  # Limited by width: 400 * (600/1200) = 200
+        self.assertEqual(width, 768)  # Uses full container width
+        self.assertEqual(height, 384)  # Limited by width: 768 * (600/1200) = 384
 
     # Tests for Pixmap Creation
 
