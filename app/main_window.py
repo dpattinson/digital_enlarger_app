@@ -231,6 +231,8 @@ class MainWindow(QMainWindow):
         """Display a pre-prepared pixmap in the preview area.
         
         This method is used by the new preview manager for optimized preview display.
+        PreviewImageManager already scales to the exact preview_label size, so no
+        additional scaling is needed here.
         
         Args:
             pixmap (QPixmap): Pre-prepared pixmap for preview display
@@ -239,12 +241,7 @@ class MainWindow(QMainWindow):
             self.preview_label.clear()
             return
             
-        # Scale pixmap to fit within the 16:9 container while preserving aspect ratio
-        scaled_pixmap = pixmap.scaled(
-            self.preview_label.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-        self.preview_label.setPixmap(scaled_pixmap)
+        # Display pixmap directly since PreviewImageManager already scaled to correct size
+        self.preview_label.setPixmap(pixmap)
         self.preview_label.setText("")  # Clear text once image is displayed
 
