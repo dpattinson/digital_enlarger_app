@@ -37,6 +37,8 @@ class TestDisplayWindow(QWidget):
     def display_simple_8bit_image(self, image_data):
         """return a simple 8-bit QPixmap from an image."""
         # Create QImage from 16-bit numpy array
+        height, width = image_data.shape
+
         q_image = QImage(
             image_data.data,
             width,
