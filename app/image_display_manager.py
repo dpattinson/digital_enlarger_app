@@ -1,21 +1,23 @@
-"""Image display management for the Darkroom Enlarger Application.
+"""Image display management for the Darkroom Enlarger Application using OpenCV.
 
 This module contains testable logic for image display operations,
-separated from PyQt6 UI dependencies.
+separated from PyQt6 UI dependencies, enhanced with OpenCV capabilities.
 """
 import numpy as np
+import cv2
 from typing import Tuple, Optional
 
 
 class ImageDisplayManager:
-    """Handles image display logic without UI dependencies.
+    """Handles image display logic without UI dependencies using OpenCV.
     
     This class contains pure logic for image processing and display calculations
     that can be easily tested without requiring PyQt6 or UI components.
+    Enhanced with OpenCV for better performance and quality.
     """
     
     def __init__(self):
-        """Initialize the ImageDisplayManager."""
+        """Initialize the ImageDisplayManager with OpenCV backend."""
         pass
     
     def validate_image_data(self, image_data: Optional[np.ndarray]) -> bool:
@@ -71,11 +73,41 @@ class ImageDisplayManager:
         
         return (new_width, new_height)
     
-    def prepare_image_for_qt_display(self, image_data: np.ndarray) -> Tuple[np.ndarray, int, int, int]:
-        """Prepare 16-bit grayscale image data for Qt display.
+    def scale_image_for_display(self, image_data: np.ndarray, 
+                               target_size: Tuple[int, int],
+                               interpolation: int = cv2.INTER_LANCZOS4) -> np.ndarray:
+        """Scale image using OpenCV with high-quality interpolation.
+        
+        Args:
+            image_data: The input image data.
+            target_size: Target size as (width, height).
+            interpolation: OpenCV interpolation method.
+            
+        Returns:
+            np.ndarray: The scaled image.
+            
+        Raises:
+            ValueError: If image data is invalid or target size is invalid.
+        """
+        if not self.validate_image_data(image_data):
+            raise ValueError("Invalid image data for scaling")
+            
+        if target_size[0] <= 0 or target_size[1] <= 0:
+            raise ValueError("Target size must be positive")
+        
+        # Use OpenCV's resize with high-quality interpolation
+        # INTER_LANCZOS4 provides excellent quality for both upscaling and downscaling
+        scaled_image = cv2.resize(image_data, target_size, interpolation=interpolation)
+        
+        return scaled_image
+    
+    def prepare_image_for_qt_display(self, image_data: np.ndarray, 
+                                   target_size: Optional[Tuple[int, int]] = None) -> Tuple[np.ndarray, int, int, int]:
+        """Prepare 16-bit grayscale image data for Qt display with optional scaling.
         
         Args:
             image_data: 16-bit grayscale image data.
+            target_size: Optional target size for scaling (width, height).
             
         Returns:
             Tuple containing:
@@ -90,19 +122,57 @@ class ImageDisplayManager:
         if not self.validate_image_data(image_data):
             raise ValueError("Invalid image data for display")
         
-        height, width = image_data.shape
+        # Scale image if target size is specified
+        if target_size is not None:
+            display_image = self.scale_image_for_display(image_data, target_size)
+        else:
+            display_image = image_data
+        
+        height, width = display_image.shape
         
         # Ensure data is contiguous for QImage
-        display_image = np.ascontiguousarray(image_data)
+        display_image = np.ascontiguousarray(display_image)
         
         # For 16-bit grayscale, bytes per line = width * 2
         bytes_per_line = width * 2
         
         return display_image, width, height, bytes_per_line
     
+    def create_preview_image(self, image_data: np.ndarray, 
+                           container_size: Tuple[int, int],
+                           preserve_aspect_ratio: bool = True) -> np.ndarray:
+        """Create a preview image optimized for display container.
+        
+        Args:
+            image_data: The source image data.
+            container_size: Size of the display container (width, height).
+            preserve_aspect_ratio: Whether to preserve aspect ratio.
+            
+        Returns:
+            np.ndarray: Preview image ready for display.
+            
+        Raises:
+            ValueError: If image data is invalid.
+        """
+        if not self.validate_image_data(image_data):
+            raise ValueError("Invalid image data for preview")
+        
+        if preserve_aspect_ratio:
+            # Calculate size that fits within container while preserving aspect ratio
+            height, width = image_data.shape
+            target_size = self.calculate_scaled_size((width, height), container_size)
+        else:
+            # Use container size directly
+            target_size = container_size
+        
+        # Create preview using high-quality scaling
+        preview = self.scale_image_for_display(image_data, target_size, cv2.INTER_AREA)
+        
+        return preview
+    
     def calculate_display_info(self, image_data: Optional[np.ndarray], 
                              container_size: Tuple[int, int]) -> dict:
-        """Calculate all information needed for image display.
+        """Calculate all information needed for image display with OpenCV enhancements.
         
         Args:
             image_data: The image data to display.
@@ -118,19 +188,29 @@ class ImageDisplayManager:
             'image_size': (0, 0),
             'scaled_size': (0, 0),
             'display_data': None,
-            'qt_params': None
+            'qt_params': None,
+            'memory_usage_mb': 0.0,
+            'scaling_factor': 0.0
         }
         
         if not self.validate_image_data(image_data):
             return result
         
         try:
-            # Prepare Qt display parameters
-            display_array, width, height, bytes_per_line = self.prepare_image_for_qt_display(image_data)
-            
-            # Calculate scaling
+            height, width = image_data.shape
             image_size = (width, height)
             scaled_size = self.calculate_scaled_size(image_size, container_size)
+            
+            # Calculate scaling factor
+            scaling_factor = min(container_size[0] / width, container_size[1] / height)
+            
+            # Prepare Qt display parameters with scaling
+            display_array, disp_width, disp_height, bytes_per_line = self.prepare_image_for_qt_display(
+                image_data, scaled_size
+            )
+            
+            # Calculate memory usage
+            memory_usage_mb = image_data.nbytes / (1024 * 1024)
             
             result.update({
                 'is_valid': True,
@@ -140,10 +220,12 @@ class ImageDisplayManager:
                 'scaled_size': scaled_size,
                 'display_data': display_array,
                 'qt_params': {
-                    'width': width,
-                    'height': height,
+                    'width': disp_width,
+                    'height': disp_height,
                     'bytes_per_line': bytes_per_line
-                }
+                },
+                'memory_usage_mb': memory_usage_mb,
+                'scaling_factor': scaling_factor
             })
             
         except Exception as e:
@@ -193,4 +275,56 @@ class ImageDisplayManager:
         vertical_padding = max(0, (container_height - img_height) // 2)
         
         return (horizontal_padding, vertical_padding)
+    
+    def optimize_for_memory(self, image_data: np.ndarray, 
+                          max_memory_mb: float = 100.0) -> np.ndarray:
+        """Optimize image for memory usage by scaling down if necessary.
+        
+        Args:
+            image_data: The input image data.
+            max_memory_mb: Maximum allowed memory usage in MB.
+            
+        Returns:
+            np.ndarray: Optimized image data.
+        """
+        if not self.validate_image_data(image_data):
+            return image_data
+        
+        current_memory_mb = image_data.nbytes / (1024 * 1024)
+        
+        if current_memory_mb <= max_memory_mb:
+            return image_data
+        
+        # Calculate scaling factor to reduce memory usage
+        scale_factor = np.sqrt(max_memory_mb / current_memory_mb)
+        
+        height, width = image_data.shape
+        new_width = int(width * scale_factor)
+        new_height = int(height * scale_factor)
+        
+        # Scale down using high-quality interpolation
+        optimized = cv2.resize(image_data, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        
+        return optimized
+    
+    def get_image_statistics(self, image_data: np.ndarray) -> dict:
+        """Get statistical information about the image.
+        
+        Args:
+            image_data: The input image data.
+            
+        Returns:
+            dict: Statistical information about the image.
+        """
+        if not self.validate_image_data(image_data):
+            return {}
+        
+        return {
+            'min_value': int(np.min(image_data)),
+            'max_value': int(np.max(image_data)),
+            'mean_value': float(np.mean(image_data)),
+            'std_value': float(np.std(image_data)),
+            'median_value': float(np.median(image_data)),
+            'dynamic_range': int(np.max(image_data) - np.min(image_data))
+        }
 
