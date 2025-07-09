@@ -46,7 +46,8 @@ class PreviewImageManager:
             
         # Convert to 8-bit for preview (faster processing)
         if image_data.dtype == np.uint16:
-            preview_image = (image_data >> 8).astype(np.uint8)
+            # Proper 16-bit to 8-bit conversion preserving full dynamic range
+            preview_image = (image_data.astype(np.float32) / 65535.0 * 255.0).astype(np.uint8)
         else:
             preview_image = image_data.astype(np.uint8)
             
