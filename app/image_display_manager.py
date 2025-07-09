@@ -460,17 +460,13 @@ class ImageDisplayManager:
         return padded_image
     
     def prepare_image_for_8k_display(self, image_data: np.ndarray,
-                                   apply_squashing: bool = False,
-                                   compression_ratio: int = 3,
                                    center_image: bool = True) -> np.ndarray:
         """Complete preparation pipeline for 8K display output.
         
-        Combines squashing and padding operations for optimal 8K display.
+        Pads image for optimal 8K display without squashing.
         
         Args:
             image_data: Input image data.
-            apply_squashing: Whether to apply image squashing (default: False).
-            compression_ratio: Compression ratio for squashing (default: 3).
             center_image: Whether to center the image (default: True).
             
         Returns:
@@ -482,26 +478,16 @@ class ImageDisplayManager:
         if not self.validate_image_data(image_data):
             raise ValueError("Invalid image data for 8K display preparation")
         
-        processed_image = image_data.copy()
-        
-        # Apply squashing if requested
-        if apply_squashing:
-            processed_image = self.squash_image_for_display(processed_image, compression_ratio)
-        
         # Pad to 8K display dimensions with white borders
-        display_ready_image = self.pad_image_for_8k_display(processed_image, center_image)
+        display_ready_image = self.pad_image_for_8k_display(image_data, center_image)
         
         return display_ready_image
     
-    def calculate_8k_display_info(self, image_data: Optional[np.ndarray],
-                                apply_squashing: bool = False,
-                                compression_ratio: int = 3) -> dict:
+    def calculate_8k_display_info(self, image_data: Optional[np.ndarray]) -> dict:
         """Calculate display information specifically for 8K display output.
         
         Args:
             image_data: The image data to analyze.
-            apply_squashing: Whether squashing will be applied.
-            compression_ratio: Compression ratio for squashing.
             
         Returns:
             dict: 8K display-specific information.
@@ -509,12 +495,9 @@ class ImageDisplayManager:
         result = {
             'is_valid': False,
             'original_size': (0, 0),
-            'squashed_size': (0, 0),
             'final_size': self.DISPLAY_8K_SIZE,
             'padding_info': {'x': 0, 'y': 0},
             'memory_usage_mb': 0.0,
-            'compression_applied': apply_squashing,
-            'compression_ratio': compression_ratio if apply_squashing else 1,
             'scaling_applied': False,
             'scaling_factor': 1.0
         }
@@ -526,15 +509,8 @@ class ImageDisplayManager:
             height, width = image_data.shape
             original_size = (width, height)
             
-            # Calculate squashed size if squashing is applied
-            if apply_squashing:
-                squashed_width = width // compression_ratio
-                squashed_size = (squashed_width, height)
-            else:
-                squashed_size = original_size
-            
             # Check if scaling will be needed
-            final_width, final_height = squashed_size
+            final_width, final_height = original_size
             scaling_applied = (final_width > self.DISPLAY_8K_WIDTH or 
                              final_height > self.DISPLAY_8K_HEIGHT)
             
@@ -556,12 +532,9 @@ class ImageDisplayManager:
             result.update({
                 'is_valid': True,
                 'original_size': original_size,
-                'squashed_size': squashed_size,
                 'final_size': self.DISPLAY_8K_SIZE,
                 'padding_info': {'x': pad_x, 'y': pad_y},
                 'memory_usage_mb': memory_usage_mb,
-                'compression_applied': apply_squashing,
-                'compression_ratio': compression_ratio if apply_squashing else 1,
                 'scaling_applied': scaling_applied,
                 'scaling_factor': scale_factor
             })

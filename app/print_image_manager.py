@@ -30,17 +30,14 @@ class PrintImageManager:
         self.cv2_rotate = cv2_rotate or cv2.rotate
         self.cv2_bitwise_not = cv2_bitwise_not or cv2.bitwise_not
         
-    def prepare_print_image(self, image_data, lut_data, apply_squashing=False, compression_ratio=3):
+    def prepare_print_image(self, image_data, lut_data):
         """Prepare an image for high-quality printing display.
         
-        Complete print processing pipeline including LUT application, inversion,
-        and optional display optimizations.
+        Complete print processing pipeline including LUT application and inversion.
         
         Args:
             image_data (numpy.ndarray): Input image data (16-bit grayscale)
             lut_data (numpy.ndarray): LUT data for color correction
-            apply_squashing (bool): Whether to apply image squashing optimization
-            compression_ratio (int): Compression ratio for squashing (if applied)
             
         Returns:
             numpy.ndarray: Print-ready image data
@@ -60,14 +57,8 @@ class PrintImageManager:
         # Invert image (negative to positive)
         inverted_image = self.invert_image(processed_image)
         
-        # Apply optional squashing for display optimization
-        if apply_squashing:
-            final_image = self.squash_image_for_display(inverted_image, compression_ratio)
-        else:
-            final_image = inverted_image
-            
         # Pad to 8K display dimensions with white borders
-        display_ready_image = self.pad_image_for_8k_display(final_image)
+        display_ready_image = self.pad_image_for_8k_display(inverted_image)
         
         return display_ready_image
         
@@ -106,49 +97,6 @@ class PrintImageManager:
             
         # Use OpenCV's bitwise_not for efficient inversion
         return self.cv2_bitwise_not(image)
-        
-    def squash_image_for_display(self, image_data, compression_ratio=3):
-        """Compress image width for monochrome display optimization.
-        
-        Compresses only the width dimension by averaging pixels horizontally,
-        maintaining height unchanged for display characteristics optimization.
-        
-        Args:
-            image_data (numpy.ndarray): Input image data
-            compression_ratio (int): Compression ratio for width reduction
-            
-        Returns:
-            numpy.ndarray: Width-compressed image data
-        """
-        if image_data is None:
-            raise ValueError("Cannot squash None image")
-            
-        if image_data.ndim != 2:
-            raise ValueError(f"Can only squash 2D grayscale images. Found {image_data.ndim} dimensions")
-            
-        if compression_ratio < 1:
-            raise ValueError(f"Compression ratio must be >= 1, got {compression_ratio}")
-            
-        height, width = image_data.shape
-        new_width = width // compression_ratio
-        
-        if new_width == 0:
-            raise ValueError(f"Image too narrow ({width}px) for compression ratio {compression_ratio}")
-            
-        # Create output image with same height, compressed width
-        squashed_image = np.zeros((height, new_width), dtype=image_data.dtype)
-        
-        # Compress width by averaging pixels in compression windows
-        for y in range(height):
-            for x in range(new_width):
-                start_x = x * compression_ratio
-                end_x = min(start_x + compression_ratio, width)
-                
-                # Average pixels in the compression window
-                window_pixels = image_data[y, start_x:end_x]
-                squashed_image[y, x] = np.mean(window_pixels).astype(image_data.dtype)
-                
-        return squashed_image
         
     def pad_image_for_8k_display(self, image_data):
         """Pad image to exact 8K display dimensions with white borders.
@@ -197,31 +145,6 @@ class PrintImageManager:
         padded_image[y_offset:y_offset + height, x_offset:x_offset + width] = image_data
         
         return padded_image
-        
-    def emulate_12bit_to_8bit_frames(self, image_16bit):
-        """Generate 8-bit frames for 12-bit emulation printing.
-        
-        Args:
-            image_16bit (numpy.ndarray): 16-bit input image data
-            
-        Returns:
-            list: List of 8-bit numpy arrays representing frames
-        """
-        if image_16bit is None:
-            raise ValueError("Cannot generate frames from None image")
-            
-        if image_16bit.ndim != 2:
-            raise ValueError(f"Expected 2D image, got {image_16bit.ndim}D")
-            
-        frames_8bit = []
-        
-        # Generate 4 frames for 12-bit emulation
-        for shift in range(4):
-            # Shift right by 'shift' bits to simulate different exposures
-            frame = (image_16bit >> shift).astype(np.uint8)
-            frames_8bit.append(frame)
-            
-        return frames_8bit
         
     def get_print_processing_info(self, original_image, processed_image):
         """Get detailed information about print processing.
@@ -328,7 +251,7 @@ class PrintImageManager:
             
         if width > self.DISPLAY_WIDTH:
             validation['warnings'].append(
-                f"Image width ({width}) exceeds display width ({self.DISPLAY_WIDTH}) - consider squashing"
+                f"Image width ({width}) exceeds display width ({self.DISPLAY_WIDTH})"
             )
             
         # Check data type
