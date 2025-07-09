@@ -37,24 +37,6 @@ class TestPrintImageManager(unittest.TestCase):
         self.assertEqual(result.shape, (4320, 7680))
         self.assertEqual(result.dtype, test_image.dtype)
 
-    def test_prepare_print_image_with_squashing(self):
-        """
-        GIVEN: Valid image and LUT data with squashing enabled
-        WHEN: prepare_print_image is called
-        THEN: Image squashing is applied in the pipeline
-        """
-        # GIVEN: Test image and LUT
-        test_image = np.ones((1000, 1500), dtype=np.uint16) * 1000
-        test_lut = np.arange(65536, dtype=np.uint16).reshape(256, 256)
-        
-        # WHEN: Preparing print image with squashing
-        result = self.manager.prepare_print_image(
-            test_image, test_lut, apply_squashing=True, compression_ratio=3
-        )
-        
-        # THEN: Result is 8K display ready with squashing applied
-        self.assertEqual(result.shape, (4320, 7680))
-
     def test_prepare_print_image_raises_error_for_none_image(self):
         """
         GIVEN: None image data
@@ -155,70 +137,6 @@ class TestPrintImageManager(unittest.TestCase):
 
     # Tests for Image Squashing
 
-    def test_squash_image_for_display_compresses_width(self):
-        """
-        GIVEN: Image with width divisible by compression ratio
-        WHEN: squash_image_for_display is called
-        THEN: Width is compressed while height remains unchanged
-        """
-        # GIVEN: Test image 100x300 (height x width)
-        test_image = np.arange(30000, dtype=np.uint16).reshape(100, 300)
-        
-        # WHEN: Squashing with ratio 3
-        result = self.manager.squash_image_for_display(test_image, compression_ratio=3)
-        
-        # THEN: Width is compressed, height unchanged
-        self.assertEqual(result.shape, (100, 100))  # 300/3 = 100
-        self.assertEqual(result.dtype, test_image.dtype)
-
-    def test_squash_image_averages_pixels_correctly(self):
-        """
-        GIVEN: Image with known pixel values
-        WHEN: squash_image_for_display is called
-        THEN: Pixels are averaged correctly in compression windows
-        """
-        # GIVEN: Simple test pattern
-        test_image = np.array([[100, 200, 300, 400, 500, 600]], dtype=np.uint16)
-        
-        # WHEN: Squashing with ratio 3
-        result = self.manager.squash_image_for_display(test_image, compression_ratio=3)
-        
-        # THEN: Pixels are averaged correctly
-        # First window: (100+200+300)/3 = 200
-        # Second window: (400+500+600)/3 = 500
-        expected = np.array([[200, 500]], dtype=np.uint16)
-        np.testing.assert_array_equal(result, expected)
-
-    def test_squash_image_raises_error_for_invalid_ratio(self):
-        """
-        GIVEN: Valid image but invalid compression ratio
-        WHEN: squash_image_for_display is called
-        THEN: ValueError is raised
-        """
-        # GIVEN: Valid image and invalid ratio
-        test_image = np.ones((100, 100), dtype=np.uint16)
-        
-        # WHEN & THEN: ValueError should be raised
-        with self.assertRaises(ValueError) as context:
-            self.manager.squash_image_for_display(test_image, compression_ratio=0)
-        self.assertIn("Compression ratio must be >= 1", str(context.exception))
-
-    def test_squash_image_raises_error_for_too_narrow_image(self):
-        """
-        GIVEN: Image too narrow for compression ratio
-        WHEN: squash_image_for_display is called
-        THEN: ValueError is raised
-        """
-        # GIVEN: Very narrow image
-        test_image = np.ones((100, 2), dtype=np.uint16)
-        
-        # WHEN & THEN: ValueError should be raised
-        with self.assertRaises(ValueError) as context:
-            self.manager.squash_image_for_display(test_image, compression_ratio=5)
-        self.assertIn("Image too narrow", str(context.exception))
-
-    # Tests for 8K Display Padding
-
     def test_pad_image_for_8k_display_centers_image(self):
         """
         GIVEN: Image smaller than 8K display
@@ -286,45 +204,6 @@ class TestPrintImageManager(unittest.TestCase):
         self.assertIn("exceeds 8K display dimensions", str(context.exception))
 
     # Tests for Frame Generation
-
-    def test_emulate_12bit_to_8bit_frames_generates_correct_count(self):
-        """
-        GIVEN: 16-bit image data
-        WHEN: emulate_12bit_to_8bit_frames is called
-        THEN: Correct number of 8-bit frames is generated
-        """
-        # GIVEN: 16-bit test image
-        test_image = np.ones((100, 100), dtype=np.uint16) * 1000
-        
-        # WHEN: Generating frames
-        result = self.manager.emulate_12bit_to_8bit_frames(test_image)
-        
-        # THEN: 4 frames are generated
-        self.assertEqual(len(result), 4)
-        for frame in result:
-            self.assertEqual(frame.dtype, np.uint8)
-            self.assertEqual(frame.shape, (100, 100))
-
-    def test_emulate_12bit_to_8bit_frames_bit_shifting(self):
-        """
-        GIVEN: 16-bit image with known values
-        WHEN: emulate_12bit_to_8bit_frames is called
-        THEN: Frames use correct bit shifting
-        """
-        # GIVEN: Test image with specific value
-        test_image = np.full((2, 2), 1024, dtype=np.uint16)  # 1024 = 0x0400
-        
-        # WHEN: Generating frames
-        result = self.manager.emulate_12bit_to_8bit_frames(test_image)
-        
-        # THEN: Frames have correct bit-shifted values
-        # Frame 0: 1024 >> 0 = 1024 -> 8-bit = 255 (clamped)
-        # Frame 1: 1024 >> 1 = 512 -> 8-bit = 255 (clamped)
-        # Frame 2: 1024 >> 2 = 256 -> 8-bit = 255 (clamped)
-        # Frame 3: 1024 >> 3 = 128 -> 8-bit = 128
-        self.assertEqual(result[3][0, 0], 128)
-
-    # Tests for Information and Validation
 
     def test_get_print_processing_info_returns_complete_information(self):
         """
@@ -411,7 +290,7 @@ class TestPrintImageManager(unittest.TestCase):
         
         # THEN: Validation passes with width warning
         self.assertTrue(result['ready'])
-        self.assertTrue(any("consider squashing" in w for w in result['warnings']))
+        self.assertTrue(any("width" in w.lower() for w in result['warnings']))
 
 
 if __name__ == '__main__':

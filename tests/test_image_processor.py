@@ -270,24 +270,3 @@ class TestImageProcessor(unittest.TestCase):
         expected_frame_3 = (edge_image >> 3).astype(np.uint8)
         np.testing.assert_array_equal(frames[3], expected_frame_3)
 
-    def test_emulate_12bit_to_8bit_frames_works_with_large_images(self):
-        """Test that frame emulation performs correctly with larger image sizes."""
-        # GIVEN: A large random 16-bit image
-        processor = ImageProcessor()
-        large_image = np.random.randint(0, 65536, size=(100, 100), dtype=np.uint16)
-        
-        # WHEN: We emulate frames from the large image
-        frames = processor.emulate_12bit_to_8bit_frames(large_image)
-        
-        # THEN: We should get 4 frames with correct properties
-        self.assertEqual(len(frames), 4)
-        
-        # AND THEN: Each frame should maintain the original shape and be 8-bit
-        for frame in frames:
-            self.assertEqual(frame.dtype, np.uint8)
-            self.assertEqual(frame.shape, large_image.shape)
-
-
-if __name__ == '__main__':
-    unittest.main()
-

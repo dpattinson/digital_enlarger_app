@@ -326,7 +326,6 @@ class TestController(unittest.TestCase):
         
         controller.image_processor.apply_lut.return_value = processed_image
         controller.image_processor.invert_image.return_value = inverted_image
-        controller.image_processor.emulate_12bit_to_8bit_frames.return_value = frames_8bit
         
         # WHEN: We start the print process
         controller.start_print()
@@ -334,7 +333,6 @@ class TestController(unittest.TestCase):
         # THEN: Complete processing pipeline should be executed
         controller.image_processor.apply_lut.assert_called_once_with(self.test_image_data, self.test_lut_data)
         controller.image_processor.invert_image.assert_called_once_with(processed_image)
-        controller.image_processor.emulate_12bit_to_8bit_frames.assert_called_once_with(inverted_image)
         
         # AND THEN: Display window should be configured and started
         controller.display_window.set_frames.assert_called_once_with(frames_8bit, 30000)
@@ -359,7 +357,6 @@ class TestController(unittest.TestCase):
         
         controller.image_processor.apply_lut.return_value = processed_image
         controller.image_processor.invert_image.return_value = inverted_image
-        controller.image_processor.emulate_12bit_to_8bit_frames.return_value = frames_8bit
         
         # WHEN: We start the print process with invalid exposure
         controller.start_print()

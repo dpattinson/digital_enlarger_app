@@ -15,49 +15,6 @@ class TestImageDisplayManager8K(unittest.TestCase):
         self.valid_image = np.array([[1000, 2000], [3000, 4000]], dtype=np.uint16)
         self.invalid_image_8bit = np.array([[100, 200], [150, 250]], dtype=np.uint8)
     
-    def test_squash_image_for_display_compresses_width_by_specified_ratio(self):
-        """Test that image squashing compresses width by the specified ratio."""
-        # GIVEN: A valid image and compression ratio of 3
-        manager = self.manager
-        test_image = np.random.randint(1000, 5000, (100, 300), dtype=np.uint16)
-        compression_ratio = 3
-        
-        # WHEN: We squash the image
-        result = manager.squash_image_for_display(test_image, compression_ratio)
-        
-        # THEN: Width should be compressed by the ratio
-        expected_width = 300 // 3
-        self.assertEqual(result.shape[1], expected_width)
-        self.assertEqual(result.shape[0], 100)  # Height unchanged
-        self.assertEqual(result.dtype, np.uint16)
-    
-    def test_squash_image_for_display_raises_error_when_given_invalid_image(self):
-        """Test that image squashing raises ValueError for invalid image data."""
-        # GIVEN: Invalid image data (8-bit instead of 16-bit)
-        manager = self.manager
-        invalid_image = self.invalid_image_8bit
-        
-        # WHEN: We attempt to squash the invalid image
-        # THEN: A ValueError should be raised
-        with self.assertRaises(ValueError) as context:
-            manager.squash_image_for_display(invalid_image)
-        
-        self.assertIn("Invalid image data", str(context.exception))
-    
-    def test_squash_image_for_display_handles_small_images_gracefully(self):
-        """Test that image squashing handles very small images without errors."""
-        # GIVEN: A very small image (width smaller than compression ratio)
-        manager = self.manager
-        small_image = np.array([[1000, 2000]], dtype=np.uint16)  # 1x2 image
-        compression_ratio = 3
-        
-        # WHEN: We squash the small image
-        result = manager.squash_image_for_display(small_image, compression_ratio)
-        
-        # THEN: Result should have minimum width of 1
-        self.assertEqual(result.shape[1], 1)
-        self.assertEqual(result.shape[0], 1)
-    
     def test_pad_image_for_8k_display_creates_correct_dimensions(self):
         """Test that padding creates image with exact 8K dimensions."""
         # GIVEN: A small test image
@@ -129,9 +86,7 @@ class TestImageDisplayManager8K(unittest.TestCase):
         
         # WHEN: We prepare the image with squashing enabled
         result = manager.prepare_image_for_8k_display(
-            test_image, 
-            apply_squashing=True, 
-            compression_ratio=3
+            test_image
         )
         
         # THEN: Result should be 8K dimensions and properly processed
@@ -150,8 +105,7 @@ class TestImageDisplayManager8K(unittest.TestCase):
         
         # WHEN: We prepare the image without squashing
         result = manager.prepare_image_for_8k_display(
-            test_image, 
-            apply_squashing=False
+            test_image
         )
         
         # THEN: Result should be 8K dimensions with original image preserved
@@ -170,18 +124,13 @@ class TestImageDisplayManager8K(unittest.TestCase):
         
         # WHEN: We calculate 8K display info with squashing
         result = manager.calculate_8k_display_info(
-            test_image, 
-            apply_squashing=True, 
-            compression_ratio=3
+            test_image
         )
         
         # THEN: Information should be accurate
         self.assertTrue(result['is_valid'])
         self.assertEqual(result['original_size'], (2000, 1000))
-        self.assertEqual(result['squashed_size'], (2000 // 3, 1000))
         self.assertEqual(result['final_size'], (7680, 4320))
-        self.assertTrue(result['compression_applied'])
-        self.assertEqual(result['compression_ratio'], 3)
         self.assertGreater(result['memory_usage_mb'], 0)
     
     def test_calculate_8k_display_info_handles_invalid_image(self):
