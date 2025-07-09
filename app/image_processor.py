@@ -58,6 +58,10 @@ class ImageProcessor:
         if image.ndim != 2:  # Grayscale images have 2 dimensions (height, width)
             raise ValueError(f"Input image must be grayscale (2D). Found {image.ndim} dimensions with shape {image.shape}")
 
+        # Auto-rotate portrait images to landscape orientation
+        if self.is_portrait_orientation(image):
+            image = self.rotate_image_clockwise_90(image)
+
         return image
 
     def apply_lut(self, image, lut):
@@ -206,4 +210,69 @@ class ImageProcessor:
         thumbnail = self.resize_image(image, (new_width, new_height), cv2.INTER_AREA)
         
         return thumbnail
+
+
+    def is_portrait_orientation(self, image):
+        """Determines if an image is in portrait orientation (height > width).
+
+        Args:
+            image (numpy.ndarray): The input image data.
+
+        Returns:
+            bool: True if the image is in portrait orientation, False otherwise.
+        """
+        if image is None or image.ndim != 2:
+            return False
+            
+        height, width = image.shape
+        return height > width
+
+    def rotate_image_clockwise_90(self, image):
+        """Rotates an image 90 degrees clockwise using OpenCV.
+
+        Args:
+            image (numpy.ndarray): The input image data.
+
+        Returns:
+            numpy.ndarray: The rotated image.
+            
+        Raises:
+            ValueError: If image data is invalid.
+        """
+        if image is None:
+            raise ValueError("Cannot rotate None image")
+            
+        if image.ndim != 2:
+            raise ValueError(f"Can only rotate 2D grayscale images. Found {image.ndim} dimensions")
+            
+        # Use OpenCV's rotate function for 90-degree clockwise rotation
+        # cv2.ROTATE_90_CLOCKWISE is equivalent to rotating 90 degrees clockwise
+        rotated_image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        
+        return rotated_image
+
+    def get_rotation_info(self, original_image, rotated_image):
+        """Get information about the rotation that was applied.
+
+        Args:
+            original_image (numpy.ndarray): The original image before rotation.
+            rotated_image (numpy.ndarray): The image after rotation.
+
+        Returns:
+            dict: Dictionary containing rotation information.
+        """
+        if original_image is None or rotated_image is None:
+            return None
+            
+        orig_height, orig_width = original_image.shape
+        rot_height, rot_width = rotated_image.shape
+        
+        return {
+            'rotation_applied': True,
+            'rotation_angle': 90,  # degrees clockwise
+            'original_size': (orig_width, orig_height),
+            'rotated_size': (rot_width, rot_height),
+            'original_orientation': 'portrait' if orig_height > orig_width else 'landscape',
+            'final_orientation': 'portrait' if rot_height > rot_width else 'landscape'
+        }
 

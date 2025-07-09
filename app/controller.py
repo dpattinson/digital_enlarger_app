@@ -1,5 +1,6 @@
 """Controller for the Darkroom Enlarger Application."""
 import os
+import cv2
 import tifffile
 from app.lut_manager import LUTManager
 from app.image_processor import ImageProcessor
@@ -46,9 +47,22 @@ class Controller:
                 f"Image selected: {os.path.basename(file_path)}"
             )
             try:
+                # Load image and check if rotation was applied
+                original_image = self.image_processor.cv2_reader(
+                    self.current_image_path, cv2.IMREAD_UNCHANGED
+                )
+                
                 self.loaded_image = self.image_processor.load_image(
                     self.current_image_path
                 )
+                
+                # Check if rotation was applied and log it
+                if (original_image is not None and 
+                    self.image_processor.is_portrait_orientation(original_image)):
+                    self.main_window.update_processing_summary(
+                        "Portrait image detected - rotated 90° clockwise to landscape"
+                    )
+                
                 self.main_window.update_processing_summary("Image loaded successfully.")
                 self.main_window.display_image_in_preview(self.loaded_image)
             except (FileNotFoundError, ValueError, tifffile.TiffFileError) as e:
