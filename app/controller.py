@@ -31,6 +31,7 @@ class Controller:
         self.current_image_path = None
         self.loaded_image = None
         self.loaded_lut = None
+        self.processed_image = None  # Store processed image (LUT + inversion applied)
 
     def connect_signals(self):
         """Connects UI signals to controller slots."""
@@ -52,6 +53,9 @@ class Controller:
                 # Load image and check if rotation was applied
                 original_image = self.image_processor.cv2_reader(file_path, cv2.IMREAD_UNCHANGED)
                 self.loaded_image = self.image_processor.load_image(file_path)
+                
+                # Clear any previously processed image
+                self.processed_image = None
                 
                 # Validate that the image is 16-bit grayscale TIFF
                 self._validate_input_image(file_path, self.loaded_image)
@@ -75,15 +79,21 @@ class Controller:
             return
             
         try:
+            # Use processed image if available, otherwise use original loaded image
+            display_image = self.processed_image if self.processed_image is not None else self.loaded_image
+            
             # Use preview manager for fast preview display
             preview_pixmap = self.preview_manager.create_preview_pixmap(
-                self.loaded_image, 
+                display_image, 
                 container_size=(768, 432)  # Match actual preview_label size (16:9 aspect ratio)
             )
             
             # Display in preview area
             self.main_window.display_preview_pixmap(preview_pixmap)
-            self.main_window.add_log_entry("Preview updated")
+            
+            # Log what type of image is being displayed
+            image_type = "processed (LUT + inverted)" if self.processed_image is not None else "original"
+            self.main_window.add_log_entry(f"Preview updated ({image_type})")
             
         except (ValueError, TypeError, RuntimeError) as e:
             self.main_window.add_log_entry(f"Error updating preview: {e}")
@@ -102,7 +112,7 @@ class Controller:
                 self.main_window.add_log_entry(f"Error loading LUT: {e}")
 
     def process_image(self):
-        """Process the image for preview display (legacy method for compatibility)."""
+        """Process the image by applying LUT and inversion, then display in preview."""
         if self.loaded_image is None:
             self.main_window.add_log_entry("Please load an image first.")
             return
@@ -111,9 +121,17 @@ class Controller:
             return
 
         try:
-            # For preview processing, we just update the preview display
+            self.main_window.add_log_entry("Processing image (applying LUT and inversion)...")
+            
+            # Apply LUT using image processor
+            lut_applied = self.image_processor.apply_lut(self.loaded_image, self.loaded_lut)
+            
+            # Apply inversion using image processor  
+            self.processed_image = self.image_processor.invert_image(lut_applied)
+            
+            # Update preview display to show processed image
             self.update_preview_display()
-            self.main_window.add_log_entry("Image processed and displayed in preview.")
+            self.main_window.add_log_entry("Image processed and displayed in preview (LUT applied + inverted).")
 
         except (ValueError, TypeError, RuntimeError) as e:
             self.main_window.add_log_entry(f"Error during processing: {e}")
@@ -129,14 +147,19 @@ class Controller:
 
         self.main_window.add_log_entry("Processing image for printing...")
         try:
-            # Use print manager for high-quality print processing
-            print_ready_image = self.print_manager.prepare_print_image(
-                self.loaded_image, 
-                self.loaded_lut,
-                apply_squashing=False  # No squashing as per requirements
-            )
-            
-            self.main_window.add_log_entry("Print processing completed")
+            # Use processed image if available, otherwise use original image with LUT processing
+            if self.processed_image is not None:
+                # Use already processed image (LUT + inversion applied)
+                print_ready_image = self.processed_image
+                self.main_window.add_log_entry("Using processed image for printing (LUT + inversion already applied)")
+            else:
+                # Use print manager for high-quality print processing
+                print_ready_image = self.print_manager.prepare_print_image(
+                    self.loaded_image, 
+                    self.loaded_lut,
+                    apply_squashing=False  # No squashing as per requirements
+                )
+                self.main_window.add_log_entry("Print processing completed")
             
             # Generate frames for 12-bit emulation
             frames_8bit = self.print_manager.emulate_12bit_to_8bit_frames(print_ready_image)
