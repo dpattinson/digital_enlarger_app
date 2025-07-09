@@ -119,22 +119,23 @@ class PreviewImageManager:
         """Convert numpy array to QPixmap for Qt display.
         
         Args:
-            image_data (numpy.ndarray): 8-bit grayscale image data
+            image_data (numpy.ndarray): 16-bit grayscale image data
             
         Returns:
             QPixmap: Qt pixmap for display
         """
-        if image_data.dtype != np.uint8:
-            raise ValueError("Expected 8-bit image data for pixmap conversion")
+        if image_data.dtype != np.uint16:
+            raise ValueError(f"Expected 16-bit grayscale image data, got {image_data.dtype}")
             
         height, width = image_data.shape
         
-        # Create QImage from numpy array
+        # Create QImage from 16-bit numpy array
         q_image = QImage(
             image_data.data, 
             width, 
             height, 
-            QImage.Format.Format_Grayscale8
+            width * 2,  # bytes per line for 16-bit
+            QImage.Format.Format_Grayscale16
         )
         
         # Convert to QPixmap
