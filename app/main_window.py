@@ -71,7 +71,21 @@ class MainWindow(QMainWindow):
         process_layout = QHBoxLayout()
         self.process_image_button = QPushButton("Process Image")
         process_layout.addWidget(self.process_image_button)
-        process_layout.addStretch()  # Add stretch to left-align the button
+        
+        # Test Mode Toggle
+        self.test_mode_button = QPushButton("Test Mode: OFF")
+        self.test_mode_button.setCheckable(True)
+        self.test_mode_button.setStyleSheet("""
+            QPushButton { background-color: #333333; color: #f0f0f0; 
+                          border: 1px solid #555555; padding: 10px; }
+            QPushButton:checked { background-color: #006600; color: #ffffff; 
+                                  border: 1px solid #00aa00; }
+            QPushButton:hover { background-color: #555555; }
+            QPushButton:checked:hover { background-color: #008800; }
+        """)
+        process_layout.addWidget(self.test_mode_button)
+        
+        process_layout.addStretch()  # Add stretch to left-align the buttons
         self.layout.addLayout(process_layout)
 
         # Processing Summary - Scrollable Log
@@ -244,4 +258,22 @@ class MainWindow(QMainWindow):
         # Display pixmap directly since PreviewImageManager already scaled to correct size
         self.preview_label.setPixmap(pixmap)
         self.preview_label.setText("")  # Clear text once image is displayed
+
+
+    def is_test_mode_enabled(self):
+        """Check if test mode is currently enabled.
+        
+        Returns:
+            bool: True if test mode is enabled, False otherwise
+        """
+        return self.test_mode_button.isChecked()
+    
+    def toggle_test_mode(self):
+        """Toggle test mode on/off and update button text."""
+        if self.test_mode_button.isChecked():
+            self.test_mode_button.setText("Test Mode: ON")
+            self.add_log_entry("Test mode enabled - printing will display in windowed mode")
+        else:
+            self.test_mode_button.setText("Test Mode: OFF")
+            self.add_log_entry("Test mode disabled - printing will display fullscreen on secondary monitor")
 

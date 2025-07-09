@@ -5,6 +5,7 @@ import tifffile
 from app.lut_manager import LUTManager
 from app.image_processor import ImageProcessor
 from app.display_window import DisplayWindow
+from app.test_display_window import TestDisplayWindow
 from app.preview_image_manager import PreviewImageManager
 from app.print_image_manager import PrintImageManager
 
@@ -21,6 +22,7 @@ class Controller:
         self.lut_manager = LUTManager(os.path.join(os.path.dirname(__file__), "..", "luts"))
         self.image_processor = ImageProcessor()
         self.display_window = DisplayWindow()
+        self.test_display_window = TestDisplayWindow()
         
         # Separate managers for preview and print concerns
         self.preview_manager = PreviewImageManager()
@@ -40,6 +42,7 @@ class Controller:
         self.main_window.process_image_button.clicked.connect(self.process_image)
         self.main_window.print_button.clicked.connect(self.start_print)
         self.main_window.stop_button.clicked.connect(self.stop_print)
+        self.main_window.test_mode_button.clicked.connect(self.main_window.toggle_test_mode)
 
     def select_image(self):
         """Handles image selection from the file dialog and loads the image."""
@@ -176,18 +179,28 @@ class Controller:
                 self.main_window.add_log_entry("Invalid exposure duration. Using default 30s.")
                 loop_duration_ms = 30000  # Default to 30 seconds
 
-            # Configure and start display
-            self.display_window.set_frames(frames_8bit, loop_duration_ms)
-            self.display_window.show_on_secondary_monitor()
-            self.display_window.start_display_loop()
-            self.main_window.add_log_entry("Print started on secondary monitor")
+            # Configure and start display based on test mode
+            if self.main_window.is_test_mode_enabled():
+                # Test mode: use windowed display
+                self.test_display_window.set_frames(frames_8bit, loop_duration_ms)
+                self.test_display_window.show_test_window()
+                self.test_display_window.start_display_loop()
+                self.main_window.add_log_entry("Print started in test mode (windowed display)")
+            else:
+                # Normal mode: use fullscreen secondary monitor
+                self.display_window.set_frames(frames_8bit, loop_duration_ms)
+                self.display_window.show_on_secondary_monitor()
+                self.display_window.start_display_loop()
+                self.main_window.add_log_entry("Print started on secondary monitor")
 
         except (ValueError, TypeError, RuntimeError) as e:
             self.main_window.add_log_entry(f"Error during print processing: {e}")
 
     def stop_print(self):
-        """Stops the image display loop."""
+        """Stops the image display loop for both normal and test mode."""
+        # Stop both display windows to ensure clean state
         self.display_window.stop_display_loop()
+        self.test_display_window.stop_display_loop()
         self.main_window.add_log_entry("Print stopped")
         
     def get_preview_info(self):
