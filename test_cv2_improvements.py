@@ -94,7 +94,7 @@ def benchmark_image_operations():
     
     # Test 6: Display Manager Enhancements
     print("6. Display Manager with cv2 Scaling:")
-    container_size = (400, 300)
+    container_size = (768, 432)
     start_time = time.time()
     display_info = display_manager.calculate_display_info(test_image, container_size)
     display_time = time.time() - start_time
