@@ -44,23 +44,32 @@ class PreviewImageManager:
         if image_data.ndim != 2:
             raise ValueError(f"Expected 2D grayscale image, got {image_data.ndim}D")
             
-        # Convert to 8-bit for preview (faster processing)
-        if image_data.dtype == np.uint16:
-            # Proper 16-bit to 8-bit conversion preserving full dynamic range
-            preview_image = (image_data.astype(np.float32) / 65535.0 * 255.0).astype(np.uint8)
-        else:
-            preview_image = image_data.astype(np.uint8)
-            
-        # Calculate optimal preview size maintaining aspect ratio
-        preview_size = self.calculate_preview_size(preview_image.shape, container_size)
+        # Simple height-based rescaling - no 8-bit conversion
+        img_height, img_width = image_data.shape
+        container_width, container_height = container_size
         
-        # Fast resize using INTER_LINEAR for speed (good enough for preview)
-        if preview_size != preview_image.shape[::-1]:  # (width, height) vs (height, width)
+        # Calculate scale factor based on height
+        scale_factor = container_height / img_height
+        
+        # Calculate new dimensions
+        new_height = container_height
+        new_width = int(img_width * scale_factor)
+        
+        # Ensure width doesn't exceed container width
+        if new_width > container_width:
+            scale_factor = container_width / img_width
+            new_width = container_width
+            new_height = int(img_height * scale_factor)
+        
+        # Resize using cv2 with original bit depth preserved
+        if (new_width, new_height) != (img_width, img_height):
             preview_image = self.cv2_resize(
-                preview_image, 
-                preview_size, 
+                image_data, 
+                (new_width, new_height), 
                 interpolation=cv2.INTER_LINEAR
             )
+        else:
+            preview_image = image_data.copy()
             
         return preview_image
         
