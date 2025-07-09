@@ -53,6 +53,9 @@ class Controller:
                 original_image = self.image_processor.cv2_reader(file_path, cv2.IMREAD_UNCHANGED)
                 self.loaded_image = self.image_processor.load_image(file_path)
                 
+                # Validate that the image is 16-bit grayscale TIFF
+                self._validate_input_image(file_path, self.loaded_image)
+                
                 # Check if rotation was applied and log it
                 if (original_image is not None and 
                     self.image_processor.is_portrait_orientation(original_image)):
@@ -196,4 +199,40 @@ class Controller:
             dict: Validation results
         """
         return self.print_manager.validate_print_readiness(self.loaded_image, self.loaded_lut)
+
+
+    def _validate_input_image(self, file_path, image_data):
+        """Validate that the input image is a 16-bit grayscale TIFF file.
+        
+        Args:
+            file_path (str): Path to the image file
+            image_data (numpy.ndarray): Loaded image data
+            
+        Raises:
+            ValueError: If the image doesn't meet requirements
+        """
+        import os
+        
+        # Check file extension
+        file_ext = os.path.splitext(file_path)[1].lower()
+        if file_ext not in ['.tif', '.tiff']:
+            raise ValueError(f"Invalid file format: {file_ext}. Expected .tif or .tiff")
+        
+        # Check if image data is valid
+        if image_data is None:
+            raise ValueError("Failed to load image data")
+        
+        # Check if image is grayscale (2D array)
+        if len(image_data.shape) != 2:
+            raise ValueError(f"Expected grayscale image (2D), got {len(image_data.shape)}D image")
+        
+        # Check if image is 16-bit
+        if image_data.dtype != 'uint16':
+            raise ValueError(f"Expected 16-bit image (uint16), got {image_data.dtype}")
+        
+        # Log successful validation
+        height, width = image_data.shape
+        self.main_window.add_log_entry(
+            f"Image validated: {width}×{height} 16-bit grayscale TIFF"
+        )
 
