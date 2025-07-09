@@ -46,17 +46,21 @@ class TestController(unittest.TestCase):
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_controller_initialization(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test controller initialization."""
-        controller = Controller(self.mock_main_window)
+    def test_controller_initializes_all_components_correctly_when_given_main_window(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that controller initialization sets up all components correctly."""
+        # GIVEN: A mock main window for the controller
+        main_window = self.mock_main_window
         
-        # Verify components are initialized
-        self.assertEqual(controller.main_window, self.mock_main_window)
+        # WHEN: We initialize the controller
+        controller = Controller(main_window)
+        
+        # THEN: All components should be initialized correctly
+        self.assertEqual(controller.main_window, main_window)
         mock_lut_manager.assert_called_once()
         mock_image_processor.assert_called_once()
         mock_display_window.assert_called_once()
         
-        # Verify initial state
+        # AND THEN: Initial state should be properly set
         self.assertIsNone(controller.current_image_path)
         self.assertIsNone(controller.loaded_image)
         self.assertIsNone(controller.loaded_lut)
@@ -64,172 +68,183 @@ class TestController(unittest.TestCase):
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_connect_signals(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test signal connections."""
-        controller = Controller(self.mock_main_window)
+    def test_controller_connects_all_ui_signals_correctly_when_initialized(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that all UI signals are properly connected during initialization."""
+        # GIVEN: A mock main window with UI components
+        main_window = self.mock_main_window
         
-        # Verify signals are connected
-        self.mock_main_window.browse_image_button.clicked.connect.assert_called_with(controller.select_image)
-        self.mock_main_window.browse_lut_button.clicked.connect.assert_called_with(controller.select_lut)
-        self.mock_main_window.process_image_button.clicked.connect.assert_called_with(controller.process_image)
-        self.mock_main_window.print_button.clicked.connect.assert_called_with(controller.start_print)
-        self.mock_main_window.stop_button.clicked.connect.assert_called_with(controller.stop_print)
+        # WHEN: We initialize the controller
+        controller = Controller(main_window)
+        
+        # THEN: All UI signals should be connected to appropriate methods
+        main_window.browse_image_button.clicked.connect.assert_called_with(controller.select_image)
+        main_window.browse_lut_button.clicked.connect.assert_called_with(controller.select_lut)
+        main_window.process_image_button.clicked.connect.assert_called_with(controller.process_image)
+        main_window.print_button.clicked.connect.assert_called_with(controller.start_print)
+        main_window.stop_button.clicked.connect.assert_called_with(controller.stop_print)
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_select_image_success(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test successful image selection."""
+    def test_select_image_loads_and_displays_image_when_given_valid_file_path(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that image selection successfully loads and displays a valid image file."""
+        # GIVEN: A controller with mocked components and a valid image file
         controller = Controller(self.mock_main_window)
+        valid_image_path = self.test_image_path
+        expected_image_data = self.test_image_data
         
-        # Mock file dialog return
-        self.mock_main_window.get_image_file.return_value = self.test_image_path
+        # AND GIVEN: File dialog returns the valid image path
+        self.mock_main_window.get_image_file.return_value = valid_image_path
+        controller.image_processor.load_image.return_value = expected_image_data
         
-        # Mock image processor
-        controller.image_processor.load_image.return_value = self.test_image_data
-        
-        # Call select_image
+        # WHEN: We select an image
         controller.select_image()
         
-        # Verify results
-        self.assertEqual(controller.current_image_path, self.test_image_path)
-        np.testing.assert_array_equal(controller.loaded_image, self.test_image_data)
+        # THEN: The image should be loaded and stored correctly
+        self.assertEqual(controller.current_image_path, valid_image_path)
+        np.testing.assert_array_equal(controller.loaded_image, expected_image_data)
         
-        # Verify UI updates
+        # AND THEN: UI should be updated with success messages and image display
         self.mock_main_window.update_processing_summary.assert_any_call(
-            f"Image selected: {os.path.basename(self.test_image_path)}"
+            f"Image selected: {os.path.basename(valid_image_path)}"
         )
         self.mock_main_window.update_processing_summary.assert_any_call("Image loaded successfully.")
-        self.mock_main_window.display_image_in_preview.assert_called_with(self.test_image_data)
+        self.mock_main_window.display_image_in_preview.assert_called_with(expected_image_data)
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_select_image_no_file(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test image selection when no file is selected."""
+    def test_select_image_does_nothing_when_no_file_selected_in_dialog(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that image selection handles gracefully when user cancels file dialog."""
+        # GIVEN: A controller and file dialog that returns None (user cancelled)
         controller = Controller(self.mock_main_window)
-        
-        # Mock file dialog return (no file selected)
         self.mock_main_window.get_image_file.return_value = None
         
-        # Call select_image
+        # WHEN: We attempt to select an image but cancel the dialog
         controller.select_image()
         
-        # Verify no changes
+        # THEN: No changes should be made to the controller state
         self.assertIsNone(controller.current_image_path)
         self.assertIsNone(controller.loaded_image)
+        
+        # AND THEN: No image processing should be attempted
+        controller.image_processor.load_image.assert_not_called()
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_select_image_load_error(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test image selection with load error."""
+    def test_select_image_handles_load_error_gracefully_when_image_processor_fails(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that image selection handles load errors gracefully and shows error message."""
+        # GIVEN: A controller and an image file that causes loading to fail
         controller = Controller(self.mock_main_window)
+        problematic_image_path = self.test_image_path
+        error_message = "Invalid image format"
         
-        # Mock file dialog return
-        self.mock_main_window.get_image_file.return_value = self.test_image_path
+        # AND GIVEN: File dialog returns the path but image processor fails
+        self.mock_main_window.get_image_file.return_value = problematic_image_path
+        controller.image_processor.load_image.side_effect = ValueError(error_message)
         
-        # Mock image processor to raise error
-        controller.image_processor.load_image.side_effect = ValueError("Invalid image format")
-        
-        # Call select_image
+        # WHEN: We attempt to select the problematic image
         controller.select_image()
         
-        # Verify error handling
-        self.assertEqual(controller.current_image_path, self.test_image_path)
+        # THEN: The path should be stored but image should remain None
+        self.assertEqual(controller.current_image_path, problematic_image_path)
         self.assertIsNone(controller.loaded_image)
         
-        # Verify UI updates
-        self.mock_main_window.update_processing_summary.assert_any_call("Error loading image: Invalid image format")
+        # AND THEN: Error message should be displayed and preview cleared
+        self.mock_main_window.update_processing_summary.assert_any_call(f"Error loading image: {error_message}")
         self.mock_main_window.display_image_in_preview.assert_called_with(None)
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_select_lut_success(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test successful LUT selection."""
+    def test_select_lut_loads_lut_successfully_when_given_valid_file_path(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that LUT selection successfully loads a valid LUT file."""
+        # GIVEN: A controller with mocked components and a valid LUT file
         controller = Controller(self.mock_main_window)
+        valid_lut_path = self.test_lut_path
+        expected_lut_data = self.test_lut_data
         
-        # Mock file dialog return
-        self.mock_main_window.get_lut_file.return_value = self.test_lut_path
+        # AND GIVEN: File dialog returns the valid LUT path
+        self.mock_main_window.get_lut_file.return_value = valid_lut_path
+        controller.lut_manager.load_lut.return_value = expected_lut_data
         
-        # Mock LUT manager
-        controller.lut_manager.load_lut.return_value = self.test_lut_data
-        
-        # Call select_lut
+        # WHEN: We select a LUT
         controller.select_lut()
         
-        # Verify results
-        np.testing.assert_array_equal(controller.loaded_lut, self.test_lut_data)
+        # THEN: The LUT should be loaded and stored correctly
+        np.testing.assert_array_equal(controller.loaded_lut, expected_lut_data)
         
-        # Verify UI updates
+        # AND THEN: UI should be updated with success message
         self.mock_main_window.update_processing_summary.assert_called_with(
-            f"LUT selected: {os.path.basename(self.test_lut_path)}"
+            f"LUT selected: {os.path.basename(valid_lut_path)}"
         )
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_select_lut_no_file(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test LUT selection when no file is selected."""
+    def test_select_lut_shows_message_when_no_file_selected_in_dialog(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that LUT selection shows appropriate message when user cancels file dialog."""
+        # GIVEN: A controller and file dialog that returns None (user cancelled)
         controller = Controller(self.mock_main_window)
-        
-        # Mock file dialog return (no file selected)
         self.mock_main_window.get_lut_file.return_value = None
         
-        # Call select_lut
+        # WHEN: We attempt to select a LUT but cancel the dialog
         controller.select_lut()
         
-        # Verify results
+        # THEN: No LUT should be loaded
         self.assertIsNone(controller.loaded_lut)
+        
+        # AND THEN: Appropriate message should be displayed
         self.mock_main_window.update_processing_summary.assert_called_with("No LUT selected.")
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_select_lut_load_error(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test LUT selection with load error."""
+    def test_select_lut_handles_load_error_gracefully_when_lut_manager_fails(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that LUT selection handles load errors gracefully and shows error message."""
+        # GIVEN: A controller and a LUT file that causes loading to fail
         controller = Controller(self.mock_main_window)
+        problematic_lut_path = self.test_lut_path
+        error_message = "Invalid LUT format"
         
-        # Mock file dialog return
-        self.mock_main_window.get_lut_file.return_value = self.test_lut_path
+        # AND GIVEN: File dialog returns the path but LUT manager fails
+        self.mock_main_window.get_lut_file.return_value = problematic_lut_path
+        controller.lut_manager.load_lut.side_effect = ValueError(error_message)
         
-        # Mock LUT manager to raise error
-        controller.lut_manager.load_lut.side_effect = ValueError("Invalid LUT format")
-        
-        # Call select_lut
+        # WHEN: We attempt to select the problematic LUT
         controller.select_lut()
         
-        # Verify error handling
+        # THEN: No LUT should be loaded
         self.assertIsNone(controller.loaded_lut)
-        self.mock_main_window.update_processing_summary.assert_called_with("Error loading LUT: Invalid LUT format")
+        
+        # AND THEN: Error message should be displayed
+        self.mock_main_window.update_processing_summary.assert_called_with(f"Error loading LUT: {error_message}")
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_process_image_success(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test successful image processing."""
+    def test_process_image_applies_lut_and_inversion_when_given_valid_image_and_lut(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that image processing applies LUT and inversion correctly with valid inputs."""
+        # GIVEN: A controller with loaded image and LUT
         controller = Controller(self.mock_main_window)
-        
-        # Set up loaded image and LUT
         controller.loaded_image = self.test_image_data
         controller.loaded_lut = self.test_lut_data
         
-        # Mock processing results
+        # AND GIVEN: Expected processing results
         processed_image = np.array([[2000, 4000, 6000], [8000, 10000, 12000]], dtype=np.uint16)
         inverted_image = 65535 - processed_image
-        
         controller.image_processor.apply_lut.return_value = processed_image
         controller.image_processor.invert_image.return_value = inverted_image
         
-        # Call process_image
+        # WHEN: We process the image
         controller.process_image()
         
-        # Verify processing calls
+        # THEN: LUT should be applied and image should be inverted
         controller.image_processor.apply_lut.assert_called_once_with(self.test_image_data, self.test_lut_data)
         controller.image_processor.invert_image.assert_called_once_with(processed_image)
         
-        # Verify UI updates
+        # AND THEN: UI should be updated with progress messages and final result
         self.mock_main_window.update_processing_summary.assert_any_call("Processing image...")
         self.mock_main_window.update_processing_summary.assert_any_call("LUT applied.")
         self.mock_main_window.update_processing_summary.assert_any_call("Image inverted.")
@@ -239,69 +254,72 @@ class TestController(unittest.TestCase):
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_process_image_no_image(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test image processing without loaded image."""
+    def test_process_image_shows_error_when_no_image_loaded(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that image processing shows error message when no image is loaded."""
+        # GIVEN: A controller with no loaded image but with loaded LUT
         controller = Controller(self.mock_main_window)
-        
-        # No loaded image
         controller.loaded_image = None
         controller.loaded_lut = self.test_lut_data
         
-        # Call process_image
+        # WHEN: We attempt to process without an image
         controller.process_image()
         
-        # Verify error message
+        # THEN: An error message should be displayed
         self.mock_main_window.update_processing_summary.assert_called_with("Please load an image first.")
+        
+        # AND THEN: No processing should be attempted
+        controller.image_processor.apply_lut.assert_not_called()
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_process_image_no_lut(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test image processing without loaded LUT."""
+    def test_process_image_shows_error_when_no_lut_selected(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that image processing shows error message when no LUT is selected."""
+        # GIVEN: A controller with loaded image but no LUT
         controller = Controller(self.mock_main_window)
-        
-        # No loaded LUT
         controller.loaded_image = self.test_image_data
         controller.loaded_lut = None
         
-        # Call process_image
+        # WHEN: We attempt to process without a LUT
         controller.process_image()
         
-        # Verify error message
+        # THEN: An error message should be displayed
         self.mock_main_window.update_processing_summary.assert_called_with("Please select a LUT first.")
+        
+        # AND THEN: No processing should be attempted
+        controller.image_processor.apply_lut.assert_not_called()
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_process_image_processing_error(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test image processing with processing error."""
+    def test_process_image_handles_processing_error_gracefully_when_image_processor_fails(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that image processing handles errors gracefully when processing fails."""
+        # GIVEN: A controller with loaded image and LUT but processing will fail
         controller = Controller(self.mock_main_window)
-        
-        # Set up loaded image and LUT
         controller.loaded_image = self.test_image_data
         controller.loaded_lut = self.test_lut_data
+        error_message = "Processing error"
         
-        # Mock processing error
-        controller.image_processor.apply_lut.side_effect = ValueError("Processing error")
+        # AND GIVEN: Image processor will raise an error
+        controller.image_processor.apply_lut.side_effect = ValueError(error_message)
         
-        # Call process_image
+        # WHEN: We attempt to process the image
         controller.process_image()
         
-        # Verify error handling
-        self.mock_main_window.update_processing_summary.assert_any_call("Error during processing: Processing error")
+        # THEN: Error should be handled gracefully with appropriate message
+        self.mock_main_window.update_processing_summary.assert_any_call(f"Error during processing: {error_message}")
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_start_print_success(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test successful print start."""
+    def test_start_print_processes_and_displays_frames_when_given_valid_inputs(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that print start processes image and displays frames correctly."""
+        # GIVEN: A controller with loaded image and LUT
         controller = Controller(self.mock_main_window)
-        
-        # Set up loaded image and LUT
         controller.loaded_image = self.test_image_data
         controller.loaded_lut = self.test_lut_data
         
-        # Mock processing results
+        # AND GIVEN: Expected processing results
         processed_image = np.array([[2000, 4000, 6000], [8000, 10000, 12000]], dtype=np.uint16)
         inverted_image = 65535 - processed_image
         frames_8bit = [np.array([[100, 150, 200]], dtype=np.uint8) for _ in range(4)]
@@ -310,15 +328,15 @@ class TestController(unittest.TestCase):
         controller.image_processor.invert_image.return_value = inverted_image
         controller.image_processor.emulate_12bit_to_8bit_frames.return_value = frames_8bit
         
-        # Call start_print
+        # WHEN: We start the print process
         controller.start_print()
         
-        # Verify processing calls
+        # THEN: Complete processing pipeline should be executed
         controller.image_processor.apply_lut.assert_called_once_with(self.test_image_data, self.test_lut_data)
         controller.image_processor.invert_image.assert_called_once_with(processed_image)
         controller.image_processor.emulate_12bit_to_8bit_frames.assert_called_once_with(inverted_image)
         
-        # Verify display window calls
+        # AND THEN: Display window should be configured and started
         controller.display_window.set_frames.assert_called_once_with(frames_8bit, 30000)
         controller.display_window.show_on_secondary_monitor.assert_called_once()
         controller.display_window.start_display_loop.assert_called_once()
@@ -326,18 +344,15 @@ class TestController(unittest.TestCase):
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_start_print_invalid_exposure(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test print start with invalid exposure duration."""
+    def test_start_print_uses_default_exposure_when_given_invalid_exposure_input(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that print start uses default exposure when user input is invalid."""
+        # GIVEN: A controller with loaded image and LUT but invalid exposure input
         controller = Controller(self.mock_main_window)
-        
-        # Set up loaded image and LUT
         controller.loaded_image = self.test_image_data
         controller.loaded_lut = self.test_lut_data
-        
-        # Mock invalid exposure input
         self.mock_main_window.exposure_input.text.return_value = "invalid"
         
-        # Mock processing results
+        # AND GIVEN: Expected processing results
         processed_image = np.array([[2000, 4000, 6000], [8000, 10000, 12000]], dtype=np.uint16)
         inverted_image = 65535 - processed_image
         frames_8bit = [np.array([[100, 150, 200]], dtype=np.uint8) for _ in range(4)]
@@ -346,11 +361,13 @@ class TestController(unittest.TestCase):
         controller.image_processor.invert_image.return_value = inverted_image
         controller.image_processor.emulate_12bit_to_8bit_frames.return_value = frames_8bit
         
-        # Call start_print
+        # WHEN: We start the print process with invalid exposure
         controller.start_print()
         
-        # Verify default exposure is used (30000ms)
+        # THEN: Default exposure should be used (30000ms)
         controller.display_window.set_frames.assert_called_once_with(frames_8bit, 30000)
+        
+        # AND THEN: Warning message should be displayed
         self.mock_main_window.update_processing_summary.assert_any_call(
             "Invalid exposure duration. Using default 30s."
         )
@@ -358,49 +375,58 @@ class TestController(unittest.TestCase):
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_start_print_no_image(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test print start without loaded image."""
+    def test_start_print_shows_error_when_no_image_loaded(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that print start shows error message when no image is loaded."""
+        # GIVEN: A controller with no loaded image but with loaded LUT
         controller = Controller(self.mock_main_window)
-        
-        # No loaded image
         controller.loaded_image = None
         controller.loaded_lut = self.test_lut_data
         
-        # Call start_print
+        # WHEN: We attempt to start printing without an image
         controller.start_print()
         
-        # Verify error message
+        # THEN: An error message should be displayed
         self.mock_main_window.update_processing_summary.assert_called_with("Please load an image first.")
+        
+        # AND THEN: No processing or display should be attempted
+        controller.image_processor.apply_lut.assert_not_called()
+        controller.display_window.set_frames.assert_not_called()
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_start_print_no_lut(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test print start without loaded LUT."""
+    def test_start_print_shows_error_when_no_lut_selected(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that print start shows error message when no LUT is selected."""
+        # GIVEN: A controller with loaded image but no LUT
         controller = Controller(self.mock_main_window)
-        
-        # No loaded LUT
         controller.loaded_image = self.test_image_data
         controller.loaded_lut = None
         
-        # Call start_print
+        # WHEN: We attempt to start printing without a LUT
         controller.start_print()
         
-        # Verify error message
+        # THEN: An error message should be displayed
         self.mock_main_window.update_processing_summary.assert_called_with("Please select a LUT first.")
+        
+        # AND THEN: No processing or display should be attempted
+        controller.image_processor.apply_lut.assert_not_called()
+        controller.display_window.set_frames.assert_not_called()
 
     @patch('app.controller.DisplayWindow')
     @patch('app.controller.ImageProcessor')
     @patch('app.controller.LUTManager')
-    def test_stop_print(self, mock_lut_manager, mock_image_processor, mock_display_window):
-        """Test stopping print."""
+    def test_stop_print_stops_display_loop_and_shows_confirmation_message(self, mock_lut_manager, mock_image_processor, mock_display_window):
+        """Test that print stop correctly stops the display loop and shows confirmation."""
+        # GIVEN: A controller with display window
         controller = Controller(self.mock_main_window)
         
-        # Call stop_print
+        # WHEN: We stop the print process
         controller.stop_print()
         
-        # Verify display window call
+        # THEN: Display loop should be stopped
         controller.display_window.stop_display_loop.assert_called_once()
+        
+        # AND THEN: Confirmation message should be displayed
         self.mock_main_window.update_processing_summary.assert_called_with("Display loop stopped.")
 
 
