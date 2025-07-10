@@ -162,12 +162,6 @@ class Controller:
                     self.loaded_lut
                 )
                 self.main_window.add_log_entry("Print processing completed")
-            
-            # Generate frames for 12-bit emulation
-            frames_8bit = self.print_manager.emulate_12bit_to_8bit_frames(print_ready_image)
-            self.main_window.add_log_entry(
-                f"Generated {len(frames_8bit)} 8-bit frames for 12-bit emulation"
-            )
 
             # Get exposure duration from UI
             exposure_duration_str = self.main_window.exposure_input.text()
@@ -181,17 +175,15 @@ class Controller:
             # Configure and start display based on test mode
             if self.main_window.is_test_mode_enabled():
                 # Test mode: use windowed display
-                # self.test_display_window.set_frames(frames_8bit, loop_duration_ms)
                 self.test_display_window.show_test_window()
                 self.test_display_window.display_simple_print_image(print_ready_image)
-                # self.test_display_window.start_display_loop()
                 self.main_window.add_log_entry("Print started in test mode (windowed display)")
             else:
                 # Normal mode: use fullscreen secondary monitor
-                self.display_window.set_frames(frames_8bit, loop_duration_ms)
-                self.display_window.show_on_secondary_monitor()
-                self.display_window.start_display_loop()
-                self.main_window.add_log_entry("Print started on secondary monitor")
+                # self.display_window.set_frames(frames_8bit, loop_duration_ms)
+                # self.display_window.show_on_secondary_monitor()
+                # self.display_window.start_display_loop()
+                # self.main_window.add_log_entry("Print started on secondary monitor")
 
         except (ValueError, TypeError, RuntimeError) as e:
             self.main_window.add_log_entry(f"Error during print processing: {e}")
