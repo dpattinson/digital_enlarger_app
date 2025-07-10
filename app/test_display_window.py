@@ -58,7 +58,7 @@ class TestDisplayWindow(QWidget):
         )
 
         # --------- Step 3: Scale image by height ----------
-        resized_image = q_image.scaledToHeight(container_height, Qt.TransformationMode.SmoothTransformation)
+        resized_image = q_image.scaledToHeight(container_height / 2, Qt.TransformationMode.SmoothTransformation)
 
         # --------- Step 4: Pad image to label dimensions ----------
         image_padded = self.pad_qimage_to_size(resized_image, container_width, container_height)
