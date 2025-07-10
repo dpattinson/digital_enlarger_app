@@ -178,7 +178,7 @@ class Controller:
                 self.test_display_window.show_test_window()
                 self.test_display_window.display_simple_print_image(print_ready_image)
                 self.main_window.add_log_entry("Print started in test mode (windowed display)")
-            else:
+            #else:
                 # Normal mode: use fullscreen secondary monitor
                 # self.display_window.set_frames(frames_8bit, loop_duration_ms)
                 # self.display_window.show_on_secondary_monitor()
