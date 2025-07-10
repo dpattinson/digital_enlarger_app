@@ -101,6 +101,10 @@ class TestDisplayWindow(QWidget):
         print("padded format:", padded.format())
         print("padded size:", padded.size())
 
+        assert not padded.isNull(), "Padded QImage is null"
+        pixmap = QPixmap.fromImage(padded)
+        assert not pixmap.isNull(), "Generated QPixmap is null"
+
         # Center scaled image
         x_offset = (target_width - scaled.width()) // 2
         y_offset = (target_height - scaled.height()) // 2
