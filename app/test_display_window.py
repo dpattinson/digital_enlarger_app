@@ -31,66 +31,12 @@ class TestDisplayWindow(QWidget):
         self.image_label.setStyleSheet("background-color: black;")
         self.layout.addWidget(self.image_label)
 
-        self.frame_timer = QTimer(self)
-        self.frame_timer.timeout.connect(self._next_frame)
-        self.frames = []
-        self.current_frame_index = 0
-        self.loop_duration_ms = 0
 
 
-    def set_frames(self, frames, loop_duration_ms):
-        """Sets the frames to be displayed and the total loop duration.
-
-        Args:
-            frames (list): A list of 8-bit numpy arrays representing image frames.
-            loop_duration_ms (int): The total duration of the display loop in milliseconds.
-        """
-        self.frames = frames
-        self.loop_duration_ms = loop_duration_ms
-        self.current_frame_index = 0
-
-    def start_display_loop(self):
-        """Starts the continuous display loop of image frames."""
-        if not self.frames:
-            print("No frames to display.")
-            return
-
-        # Calculate interval per frame to achieve desired loop duration
-        interval_per_frame = int(self.loop_duration_ms / len(self.frames))
-        if interval_per_frame <= 500:
-            interval_per_frame = 500  # Ensure at least 500ms interval
-
-        self.frame_timer.start(interval_per_frame)
-        self._next_frame()
-
-    def stop_display_loop(self):
+    def stop_display(self):
         """Stops the display loop and clears the displayed image."""
-        self.frame_timer.stop()
         self.image_label.clear()
 
-    def _next_frame(self):
-        """Displays the next frame in the sequence."""
-        if not self.frames:
-            self.stop_display_loop()
-            return
-
-        frame_data = self.frames[self.current_frame_index]
-        h, w = frame_data.shape
-
-        # Create QImage from 8-bit grayscale frame
-        q_image = QImage(frame_data.data, w, h, QImage.Format.Format_Grayscale8)
-        pixmap = QPixmap.fromImage(q_image)
-
-        # Scale to fit the test window while maintaining aspect ratio
-        # This simulates how the image would appear on the secondary display
-        scaled_pixmap = pixmap.scaled(
-            self.image_label.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-
-        self.image_label.setPixmap(scaled_pixmap)
-        self.current_frame_index = (self.current_frame_index + 1) % len(self.frames)
 
     def show_test_window(self):
         """Shows the test display window in windowed mode."""
