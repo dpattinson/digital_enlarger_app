@@ -1,4 +1,5 @@
 """Test mode display window for the Darkroom Enlarger Application."""
+import cv2
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt, QTimer
@@ -41,6 +42,7 @@ class TestDisplayWindow(QWidget):
 
         img_height, img_width = image_data.shape
         container_height = self.image_label.height()
+        container_width = self.image_label.width()
 
         # Calculate new dimensions
         new_height = container_height
@@ -57,8 +59,11 @@ class TestDisplayWindow(QWidget):
         #resize the QImage by height
         resized_image = q_image.scaledToHeight(new_height, Qt.TransformationMode.SmoothTransformation)
 
+        # Pad image with black or white to fill LCD
+        image_padded = self.pad_qimage_to_size(resized_image,container_width,container_height)
+
         # Convert to QPixmap
-        pixmap = QPixmap.fromImage(resized_image)
+        pixmap = QPixmap.fromImage(image_padded)
 
         #display the scaled 8bit version of the image
         self.image_label.setPixmap(pixmap)
@@ -137,3 +142,25 @@ class TestDisplayWindow(QWidget):
             'simulates_secondary_display': '7680x4320 (16:9)',
             'mode': 'windowed_test'
         }
+
+    # Compress image for feeding to monochrome LCD screen
+
+    def pad_qimage_to_size(image: QImage, target_width: int, target_height: int) -> QImage:
+        # Ensure target size is at least as large as the original image
+        if target_width < image.width() or target_height < image.height():
+            raise ValueError("Target dimensions must be greater than or equal to the original image size.")
+
+        # Create a new image with the target dimensions and fill it with black
+        padded_image = QImage(target_width, target_height, image.format())
+        padded_image.fill(QColor(0, 0, 0))  # Black background
+
+        # Compute top-left corner to center the original image
+        x_offset = (target_width - image.width()) // 2
+        y_offset = (target_height - image.height()) // 2
+
+        # Draw original image into the center of the padded canvas
+        painter = QPainter(padded_image)
+        painter.drawImage(x_offset, y_offset, image)
+        painter.end()
+
+        return padded_image
