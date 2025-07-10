@@ -61,10 +61,10 @@ class TestDisplayWindow(QWidget):
         resized_image = q_image.scaledToHeight(container_height, Qt.TransformationMode.SmoothTransformation)
 
         # --------- Step 4: Pad image to label dimensions ----------
-        image_padded = self.pad_qimage_to_size(resized_image, container_width, container_height)
+        #image_padded = self.pad_qimage_to_size(resized_image, container_width, container_height)
 
         # --------- Step 5: Display ----------
-        pixmap = QPixmap.fromImage(image_padded)
+        pixmap = QPixmap.fromImage(resized_image)
         self.image_label.setPixmap(pixmap)
 
     def set_frames(self, frames, loop_duration_ms):
