@@ -151,7 +151,7 @@ class TestDisplayWindow(QWidget):
 
         # Create a new image with the target dimensions and fill it with black
         padded_image = QImage(target_width, target_height, image.format())
-        padded_image.fill(QColor(0, 0, 250))  # Black background
+        padded_image.fill(0)  # Black background
 
         # Compute top-left corner to center the original image
         x_offset = (target_width - image.width()) // 2
