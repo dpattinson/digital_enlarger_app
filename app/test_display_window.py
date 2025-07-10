@@ -38,33 +38,34 @@ class TestDisplayWindow(QWidget):
         self.loop_duration_ms = 0
 
     def display_simple_print_image(self, image_data):
-        """Display a scaled and padded 8-bit version of a 16-bit grayscale image."""
+        """return a simple QPixmap from an image."""
 
         img_height, img_width = image_data.shape
         container_height = self.image_label.height()
         container_width = self.image_label.width()
 
-        # --------- Step 1: Normalize 16-bit -> 8-bit ----------
-        # Ensure image_data is numpy.uint16
-        image_8bit = (image_data / 256).astype(np.uint8)
+        # Calculate new dimensions
+        new_height = container_height
 
-        # --------- Step 2: Create QImage (8-bit) ----------
+        # Create QImage from 16-bit numpy array
         q_image = QImage(
-            image_8bit.data,
+            image_data.data,
             img_width,
             img_height,
-            img_width,  # bytes per line for 8-bit
-            QImage.Format.Format_Grayscale8
+            img_width * 2,  # bytes per line for 16-bit
+            QImage.Format.Format_Grayscale16
         )
 
-        # --------- Step 3: Scale image by height ----------
-        resized_image = q_image.scaledToHeight(container_height, Qt.TransformationMode.SmoothTransformation)
+        #resize the QImage by height
+        resized_image = q_image.scaledToHeight(new_height, Qt.TransformationMode.SmoothTransformation)
 
-        # --------- Step 4: Pad image to label dimensions ----------
-        image_padded = self.pad_qimage_to_size(resized_image, container_width, container_height)
+        # Pad image with black or white to fill LCD
+        image_padded = self.pad_qimage_to_size(resized_image,container_width,container_height)
 
-        # --------- Step 5: Display ----------
+        # Convert to QPixmap
         pixmap = QPixmap.fromImage(image_padded)
+
+        #display the scaled 8bit version of the image
         self.image_label.setPixmap(pixmap)
 
     def set_frames(self, frames, loop_duration_ms):
