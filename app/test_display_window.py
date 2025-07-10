@@ -27,7 +27,7 @@ class TestDisplayWindow(QWidget):
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("background-color: black;")
         #try explicitly setting image_label size to match window size
-        self.image_label.setFixedSize(self,1280,720)
+        self.image_label.setFixedSize(1280,720)
         self.layout.addWidget(self.image_label)
 
         self.frame_timer = QTimer(self)
