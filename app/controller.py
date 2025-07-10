@@ -184,7 +184,7 @@ class Controller:
                 # Test mode: use windowed display
                 # self.test_display_window.set_frames(frames_8bit, loop_duration_ms)
                 self.test_display_window.show_test_window()
-                self.test_display_window.display_simple_8bit_image(print_ready_image)
+                self.test_display_window.display_simple_print_image(print_ready_image)
                 # self.test_display_window.start_display_loop()
                 self.main_window.add_log_entry("Print started in test mode (windowed display)")
             else:

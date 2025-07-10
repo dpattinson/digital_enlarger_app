@@ -1,5 +1,4 @@
 """Test mode display window for the Darkroom Enlarger Application."""
-import cv2
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt, QTimer
@@ -37,40 +36,29 @@ class TestDisplayWindow(QWidget):
         self.current_frame_index = 0
         self.loop_duration_ms = 0
 
-    def display_simple_8bit_image(self, image_data):
-        """return a simple 8-bit QPixmap from an image."""
-        # Create QImage from 16-bit numpy array
-        img_height, img_width = image_data.shape
-        container_width = self.image_label.width()
-        container_height = self.image_label.height()
+    def display_simple_print_image(self, image_data):
+        """return a simple QPixmap from an image."""
 
-        # Calculate scale factor based on height
-        scale_factor = container_height / img_height
+        img_height, img_width = image_data.shape
+        container_height = self.image_label.height()
 
         # Calculate new dimensions
         new_height = container_height
-        new_width = int(img_width * scale_factor)
 
-        # Resize using cv2 with original bit depth preserved
-        if (new_width, new_height) != (img_width, img_height):
-            scaled_image = cv2.resize(
-                image_data,
-                (new_width, new_height),
-                interpolation=cv2.INTER_LINEAR
-            )
-        else:
-            scaled_image = image_data.copy()
-
+        # Create QImage from 16-bit numpy array
         q_image = QImage(
-            scaled_image.data,
-            new_width,
-            new_height,
-            new_width,  # bytes per line for 16-bit
-            QImage.Format.Format_Grayscale8
+            image_data.data,
+            img_width,
+            img_height,
+            img_width * 2,  # bytes per line for 16-bit
+            QImage.Format.Format_Grayscale16
         )
 
+        #resize the QImage by height
+        resized_image = q_image.scaledToHeight(new_height, Qt.TransformationMode.SmoothTransformation)
+
         # Convert to QPixmap
-        pixmap = QPixmap.fromImage(q_image)
+        pixmap = QPixmap.fromImage(resized_image)
 
         #display the scaled 8bit version of the image
         self.image_label.setPixmap(pixmap)
