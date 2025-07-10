@@ -1,5 +1,5 @@
 """Test mode display window for the Darkroom Enlarger Application."""
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt, QTimer
 
@@ -26,6 +26,8 @@ class TestDisplayWindow(QWidget):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("background-color: black;")
+        #try explicitly setting image_label size to match window size
+        self.image_label.setFixedSize(self,1280,720)
         self.layout.addWidget(self.image_label)
 
         self.frame_timer = QTimer(self)
