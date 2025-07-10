@@ -53,7 +53,7 @@ class TestDisplayWindow(QWidget):
 
         # Resize using cv2 with original bit depth preserved
         if (new_width, new_height) != (img_width, img_height):
-            scaled_image = self.cv2_resize(
+            scaled_image = cv2.resize(
                 image_data,
                 (new_width, new_height),
                 interpolation=cv2.INTER_LINEAR
