@@ -24,10 +24,10 @@ class TestDisplayWindow(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for full window usage
 
         self.image_label = QLabel()
+        # try explicitly setting image_label size to match window size
+        self.image_label.setFixedSize(self.window_width, self.window_height)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("background-color: black;")
-        #try explicitly setting image_label size to match window size
-        self.image_label.setFixedSize(1280,720)
         self.layout.addWidget(self.image_label)
 
         self.frame_timer = QTimer(self)
@@ -39,28 +39,40 @@ class TestDisplayWindow(QWidget):
     def display_simple_8bit_image(self, image_data):
         """return a simple 8-bit QPixmap from an image."""
         # Create QImage from 16-bit numpy array
-        height, width = image_data.shape
+        img_height, img_width = image_data.shape
+        container_width = self.image_label.width()
+        container_height = self.image_label.height()
+
+        # Calculate scale factor based on height
+        scale_factor = container_height / img_height
+
+        # Calculate new dimensions
+        new_height = container_height
+        new_width = int(img_width * scale_factor)
+
+        # Resize using cv2 with original bit depth preserved
+        if (new_width, new_height) != (img_width, img_height):
+            scaled_image = self.cv2_resize(
+                image_data,
+                (new_width, new_height),
+                interpolation=cv2.INTER_LINEAR
+            )
+        else:
+            scaled_image = image_data.copy()
 
         q_image = QImage(
-            image_data.data,
-            width,
-            height,
-            width * 2,  # bytes per line for 16-bit
+            scaled_image.data,
+            new_width,
+            new_height,
+            new_width,  # bytes per line for 16-bit
             QImage.Format.Format_Grayscale8
         )
 
         # Convert to QPixmap
         pixmap = QPixmap.fromImage(q_image)
 
-        # Scale to fit the test window while maintaining aspect ratio
-        # This simulates how the image would appear on the secondary display
-        scaled_pixmap = pixmap.scaled(
-            self.image_label.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
         #display the scaled 8bit version of the image
-        self.image_label.setPixmap(scaled_pixmap)
+        self.image_label.setPixmap(pixmap)
 
     def set_frames(self, frames, loop_duration_ms):
         """Sets the frames to be displayed and the total loop duration.
