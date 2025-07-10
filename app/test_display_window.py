@@ -37,35 +37,6 @@ class TestDisplayWindow(QWidget):
         self.current_frame_index = 0
         self.loop_duration_ms = 0
 
-    def display_simple_print_image(self, image_data):
-        """Display a scaled and padded 8-bit version of a 16-bit grayscale image."""
-
-        img_height, img_width = image_data.shape
-        container_height = self.image_label.height()
-        container_width = self.image_label.width()
-
-        # --------- Step 1: Normalize 16-bit -> 8-bit ----------
-        # Ensure image_data is numpy.uint16
-        image_8bit = (image_data / 256).astype(np.uint8)
-
-        # --------- Step 2: Create QImage (8-bit) ----------
-        q_image = QImage(
-            image_8bit.data,
-            img_width,
-            img_height,
-            img_width,  # bytes per line for 8-bit
-            QImage.Format.Format_Grayscale8
-        )
-
-        # --------- Step 3: Scale image by height ----------
-        #resized_image = q_image.scaledToHeight(700, Qt.TransformationMode.SmoothTransformation)
-
-        # --------- Step 4: Pad image to label dimensions ----------
-        image_padded = self.scale_and_pad_qimage(q_image,container_width,container_height)
-
-        # --------- Step 5: Display ----------
-        pixmap = QPixmap.fromImage(image_padded)
-        self.image_label.setPixmap(pixmap)
 
     def set_frames(self, frames, loop_duration_ms):
         """Sets the frames to be displayed and the total loop duration.
@@ -142,7 +113,35 @@ class TestDisplayWindow(QWidget):
             'mode': 'windowed_test'
         }
 
-    # Compress image for feeding to monochrome LCD screen
+    def display_simple_print_image(self, image_data):
+        """Display a scaled and padded 8-bit version of a 16-bit grayscale image."""
+
+        img_height, img_width = image_data.shape
+        container_height = self.image_label.height()
+        container_width = self.image_label.width()
+
+        # --------- Step 1: Normalize 16-bit -> 8-bit ----------
+        # Ensure image_data is numpy.uint16
+        image_8bit = (image_data / 256).astype(np.uint8)
+
+        # --------- Step 2: Create QImage (8-bit) ----------
+        q_image = QImage(
+            image_8bit.data,
+            img_width,
+            img_height,
+            img_width,  # bytes per line for 8-bit
+            QImage.Format.Format_Grayscale8
+        )
+
+        # --------- Step 3: Scale image by height ----------
+        # resized_image = q_image.scaledToHeight(700, Qt.TransformationMode.SmoothTransformation)
+
+        # --------- Step 4: Pad image to label dimensions ----------
+        image_padded = self.scale_and_pad_qimage(q_image, container_width, container_height)
+
+        # --------- Step 5: Display ----------
+        pixmap = QPixmap.fromImage(image_padded)
+        self.image_label.setPixmap(pixmap)
 
     def scale_and_pad_qimage(self, image: QImage, target_width: int, target_height: int) -> QImage:
         # Scale image preserving aspect ratio, but not bigger than target size
@@ -150,7 +149,7 @@ class TestDisplayWindow(QWidget):
                               Qt.TransformationMode.SmoothTransformation)
 
         # Create padded image with black background
-        padded = QImage(target_width, target_height, image.format())
+        padded = QImage(target_width, target_height, QImage.Format.Format_Grayscale8)
         padded.fill(0)  # black for Grayscale8
 
         # Center scaled image
