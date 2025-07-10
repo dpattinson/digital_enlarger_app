@@ -61,10 +61,10 @@ class TestDisplayWindow(QWidget):
         resized_image = q_image.scaledToHeight(container_height, Qt.TransformationMode.SmoothTransformation)
 
         # --------- Step 4: Pad image to label dimensions ----------
-        #image_padded = self.pad_qimage_to_size(resized_image, container_width, container_height)
+        image_padded = self.pad_qimage_to_size(resized_image, container_width, container_height)
 
         # --------- Step 5: Display ----------
-        pixmap = QPixmap.fromImage(resized_image)
+        pixmap = QPixmap.fromImage(image_padded)
         self.image_label.setPixmap(pixmap)
 
     def set_frames(self, frames, loop_duration_ms):
@@ -151,7 +151,7 @@ class TestDisplayWindow(QWidget):
 
         # Create a new image with the target dimensions and fill it with black
         padded_image = QImage(target_width, target_height, image.format())
-        padded_image.fill(QColor(0, 0, 0))  # Black background
+        padded_image.fill(QColor(0, 0, 250))  # Black background
 
         # Compute top-left corner to center the original image
         x_offset = (target_width - image.width()) // 2
