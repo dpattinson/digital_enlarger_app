@@ -58,10 +58,10 @@ class TestDisplayWindow(QWidget):
         )
 
         # --------- Step 3: Scale image by height ----------
-        resized_image = q_image.scaledToHeight(700, Qt.TransformationMode.SmoothTransformation)
+        #resized_image = q_image.scaledToHeight(700, Qt.TransformationMode.SmoothTransformation)
 
         # --------- Step 4: Pad image to label dimensions ----------
-        image_padded = self.pad_qimage_to_size(resized_image, container_width, container_height)
+        image_padded = self.scale_and_pad_qimage(q_image,container_width,container_height)
 
         # --------- Step 5: Display ----------
         pixmap = QPixmap.fromImage(image_padded)
@@ -144,23 +144,21 @@ class TestDisplayWindow(QWidget):
 
     # Compress image for feeding to monochrome LCD screen
 
-    def pad_qimage_to_size(self, image: QImage, target_width: int, target_height: int) -> QImage:
-        if target_width < image.width() or target_height < image.height():
-            raise ValueError("Target dimensions must be greater than or equal to the image size.")
+    def scale_and_pad_qimage(self, image: QImage, target_width: int, target_height: int) -> QImage:
+        # Scale image preserving aspect ratio, but not bigger than target size
+        scaled = image.scaled(target_width, target_height, Qt.AspectRatioMode.KeepAspectRatio,
+                              Qt.TransformationMode.SmoothTransformation)
 
-        padded_image = QImage(target_width, target_height, image.format())
+        # Create padded image with black background
+        padded = QImage(target_width, target_height, image.format())
+        padded.fill(0)  # black for Grayscale8
 
-        # For grayscale image, fill with 0 (black)
-        if image.format() in (QImage.Format.Format_Grayscale8, QImage.Format.Format_Grayscale16):
-            padded_image.fill(0)
-        else:
-            raise ValueError("Unsupported image format.")
+        # Center scaled image
+        x_offset = (target_width - scaled.width()) // 2
+        y_offset = (target_height - scaled.height()) // 2
 
-        x_offset = (target_width - image.width()) // 2
-        y_offset = (target_height - image.height()) // 2
-
-        painter = QPainter(padded_image)
-        painter.drawImage(x_offset, y_offset, image)
+        painter = QPainter(padded)
+        painter.drawImage(x_offset, y_offset, scaled)
         painter.end()
 
-        return padded_image
+        return padded
