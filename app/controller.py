@@ -159,8 +159,7 @@ class Controller:
                 # Use print manager for high-quality print processing
                 print_ready_image = self.print_manager.prepare_print_image(
                     self.loaded_image, 
-                    self.loaded_lut,
-                    apply_squashing=False  # No squashing as per requirements
+                    self.loaded_lut
                 )
                 self.main_window.add_log_entry("Print processing completed")
             

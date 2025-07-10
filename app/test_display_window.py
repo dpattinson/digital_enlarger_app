@@ -1,8 +1,10 @@
 """Test mode display window for the Darkroom Enlarger Application."""
 import numpy as np
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
-from PyQt6.QtGui import QPixmap, QImage, QColor, QPainter
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtCore import Qt
+
+from app.print_image_manager import scale_and_pad_qimage
 
 
 class TestDisplayWindow(QWidget):
@@ -83,43 +85,9 @@ class TestDisplayWindow(QWidget):
         # resized_image = q_image.scaledToHeight(700, Qt.TransformationMode.SmoothTransformation)
 
         # --------- Step 4: Pad image to label dimensions ----------
-        image_padded = self.scale_and_pad_qimage(q_image, container_width, container_height)
+        image_padded = scale_and_pad_qimage(q_image, container_width, container_height)
 
         # --------- Step 5: Display ----------
         pixmap = QPixmap.fromImage(image_padded)
         self.image_label.setPixmap(pixmap)
 
-    def scale_and_pad_qimage(self, image: QImage, target_width: int, target_height: int) -> QImage:
-        # Scale image preserving aspect ratio, but not bigger than target size
-        print("original image format", image.format())
-        print("original image size", image.size())
-        scaled = image.scaled(target_width, target_height, Qt.AspectRatioMode.KeepAspectRatio,
-                              Qt.TransformationMode.SmoothTransformation)
-        print("scaled image format", scaled.format())
-        print("scaled image size", scaled.size())
-        # Create padded image with black background
-        padded = QImage(target_width, target_height, QImage.Format.Format_Grayscale8)
-        padded.fill(0)  # black for Grayscale8
-        print("padded format:", padded.format())
-        print("padded size:", padded.size())
-
-        assert not padded.isNull(), "Padded QImage is null"
-        pixmap = QPixmap.fromImage(padded)
-        assert not pixmap.isNull(), "Generated QPixmap is null"
-
-        # Center scaled image
-        x_offset = (target_width - scaled.width()) // 2
-        y_offset = (target_height - scaled.height()) // 2
-
-        painter = QPainter(padded)
-        painter.drawImage(x_offset, y_offset, scaled)
-
-        from PyQt6.QtGui import QPen
-
-        pen = QPen(QColor(255, 0, 0))
-        pen.setWidth(3)
-        painter.setPen(pen)
-        painter.drawRect(0, 0, padded.width() - 1, padded.height() - 1)
-        painter.end()
-
-        return padded
