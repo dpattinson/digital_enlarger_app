@@ -92,9 +92,11 @@ class TestDisplayWindow(QWidget):
     def scale_and_pad_qimage(self, image: QImage, target_width: int, target_height: int) -> QImage:
         # Scale image preserving aspect ratio, but not bigger than target size
         print("original image format", image.format())
+        print("original image size", image.size())
         scaled = image.scaled(target_width, target_height, Qt.AspectRatioMode.KeepAspectRatio,
                               Qt.TransformationMode.SmoothTransformation)
         print("scaled image format", scaled.format())
+        print("scaled image size", scaled.size())
         # Create padded image with black background
         padded = QImage(target_width, target_height, QImage.Format.Format_Grayscale8)
         padded.fill(0)  # black for Grayscale8
