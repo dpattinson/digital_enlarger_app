@@ -144,20 +144,21 @@ class TestDisplayWindow(QWidget):
 
     # Compress image for feeding to monochrome LCD screen
 
-    def pad_qimage_to_size(self, image: QImage, target_width: int, target_height: int) -> QImage:
-        # Ensure target size is at least as large as the original image
+    def pad_qimage_to_size(image: QImage, target_width: int, target_height: int) -> QImage:
         if target_width < image.width() or target_height < image.height():
-            raise ValueError("Target dimensions must be greater than or equal to the original image size.")
+            raise ValueError("Target dimensions must be greater than or equal to the image size.")
 
-        # Create a new image with the target dimensions and fill it with black
         padded_image = QImage(target_width, target_height, image.format())
-        padded_image.fill(0)  # Black background
 
-        # Compute top-left corner to center the original image
+        # For grayscale image, fill with 0 (black)
+        if image.format() in (QImage.Format.Format_Grayscale8, QImage.Format.Format_Grayscale16):
+            padded_image.fill(0)
+        else:
+            raise ValueError("Unsupported image format.")
+
         x_offset = (target_width - image.width()) // 2
         y_offset = (target_height - image.height()) // 2
 
-        # Draw original image into the center of the padded canvas
         painter = QPainter(padded_image)
         painter.drawImage(x_offset, y_offset, image)
         painter.end()
