@@ -201,7 +201,7 @@ class Controller:
         """Stops the image display loop for both normal and test mode."""
         # Stop both display windows to ensure clean state
         self.display_window.stop_display_loop()
-        self.test_display_window.stop_display_loop()
+        self.test_display_window.stop_display()
         self.main_window.add_log_entry("Print stopped")
         
     def get_preview_info(self):
