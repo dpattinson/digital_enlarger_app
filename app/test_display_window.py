@@ -144,7 +144,7 @@ class TestDisplayWindow(QWidget):
 
     # Compress image for feeding to monochrome LCD screen
 
-    def pad_qimage_to_size(image: QImage, target_width: int, target_height: int) -> QImage:
+    def pad_qimage_to_size(self, image: QImage, target_width: int, target_height: int) -> QImage:
         # Ensure target size is at least as large as the original image
         if target_width < image.width() or target_height < image.height():
             raise ValueError("Target dimensions must be greater than or equal to the original image size.")
