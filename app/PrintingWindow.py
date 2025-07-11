@@ -105,14 +105,27 @@ class PrintingWindow(QWidget):
         return scaled_frames
 
     def show_white_frame(self):
-        """Diagnostic method to display a pure white frame."""
+        """Diagnostic: Display a pure white frame with gray marker and label."""
         white = np.full((self.screen_height, self.screen_width), 255, dtype=np.uint8)
 
-        # Option 1: Standard Grayscale
-        qimage = QImage(white.data, white.shape[1], white.shape[0], white.shape[1], QImage.Format.Format_Grayscale8)
+        # Draw a mid-gray square in the center
+        square_size = min(self.screen_width, self.screen_height) // 6
+        center_x = self.screen_width // 2
+        center_y = self.screen_height // 2
+        top_left = (center_x - square_size // 2, center_y - square_size // 2)
+        bottom_right = (center_x + square_size // 2, center_y + square_size // 2)
+        cv2.rectangle(white, top_left, bottom_right, color=128, thickness=-1)
 
-        # Option 2: If above shows black, force RGB conversion
-        # rgb_white = cv2.cvtColor(white, cv2.COLOR_GRAY2RGB)
-        # h, w, _ = rgb_white.shape
-        # qimage = QImage(rgb_white.data, w, h, 3 * w, QImage.Format.Format_RGB888)
+        # Add label text
+        text = "WHITE FRAME"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 2.0
+        thickness = 3
+        text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
+        text_x = (self.screen_width - text_size[0]) // 2
+        text_y = top_left[1] - 30  # above the square
+        cv2.putText(white, text, (text_x, text_y), font, font_scale, 0, thickness)  # black text
+
+        # Convert to QImage and display
+        qimage = QImage(white.data, white.shape[1], white.shape[0], white.shape[1], QImage.Format.Format_Grayscale8)
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
