@@ -263,7 +263,7 @@ class PrintImageManager:
 
         return padded
 
-    def generate_dithered_frames_from_tiff(image_16bit_pil, target_width=7680, target_height=4320, num_frames=16):
+    def generate_dithered_frames_from_tiff(self, image_16bit_pil, target_width=7680, target_height=4320, num_frames=16):
         """
         Accepts a 16-bit grayscale PIL Image, pads it to target size,
         and returns a list of 8-bit frames simulating 12-bit output.

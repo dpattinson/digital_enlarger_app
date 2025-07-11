@@ -1,6 +1,7 @@
 """Controller for the Darkroom Enlarger Application with separated preview/print concerns."""
 import os
 import cv2
+import numpy as np
 import tifffile
 from app.lut_manager import LUTManager
 from app.image_processor import ImageProcessor
@@ -180,6 +181,8 @@ class Controller:
                 self.main_window.add_log_entry("Print started in test mode (windowed display)")
             else:
                 # Normal mode: use fullscreen secondary monitor
+                print("about to generate array of 8bit frames")
+                assert isinstance(print_ready_image, np.ndarray), "Input is not a NumPy array"
                 frames_8bit = self.print_manager.generate_dithered_frames_from_tiff(print_ready_image)
                 print("generated array of 8bit frames:" + str(len(frames_8bit)))
                 self.display_window.set_frames(frames_8bit, loop_duration_ms)
