@@ -262,5 +262,7 @@ class PrintImageManager:
         for f in range(num_frames):
             dithered = base + (remainder > f).astype(np.uint8)
             frames.append(dithered)
-
+        #print out the mean brightness of the frames for debugging
+        for i, f in enumerate(frames):
+            print(f"Frame {i}: min={f.min()}, max={f.max()}, mean={f.mean():.2f}")
         return frames
