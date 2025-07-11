@@ -183,6 +183,16 @@ class Controller:
                 print("about to generate array of 8bit frames")
                 assert isinstance(print_ready_image, np.ndarray), "Input is not a NumPy array"
                 frames_8bit = self.print_manager.generate_dithered_frames_from_tiff(print_ready_image)
+
+                # Analyze brightness of each frame
+                import matplotlib.pyplot as plt
+                means = [np.mean(f) for f in frames_8bit]
+                plt.plot(means, marker='o')
+                plt.title("Mean Intensity Per Frame")
+                plt.xlabel("Frame Index")
+                plt.ylabel("Mean Brightness")
+                plt.grid(True)
+                plt.show()
                 #print("generated array of 8bit frames:" + str(len(frames_8bit)))
                 #self.display_window.set_frames(frames_8bit, loop_duration_ms)
                 #print("set frames in display window")
