@@ -64,7 +64,7 @@ class DisplayWindow(QWidget):
         frame_data = self.frames[self.current_frame_index]
         h, w = frame_data.shape
         # QImage.Format_Grayscale8 is for 8-bit grayscale images
-        q_image = QImage(frame_data.data, w/2, h/2, QImage.Format.Format_Grayscale8)
+        q_image = QImage(frame_data.data, w, h, QImage.Format.Format_Grayscale8)
         pixmap = QPixmap.fromImage(q_image)
         self.image_label.setPixmap(pixmap)
 
