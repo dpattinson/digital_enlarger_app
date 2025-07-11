@@ -281,4 +281,20 @@ class PrintImageManager:
         for i, f in enumerate(frames):
             print(f"Frame {i}: mean={np.mean(f):.2f}")
             cv2.imwrite(os.path.join(output_dir, f"debug_frame_{i}.png"), frames[i])
+
+        #debug to validate there is a tonal difference between first and last frame
+        import matplotlib.pyplot as plt
+
+        # Compute difference between frame 0 and frame 15
+        diff = cv2.absdiff(frames[0], frames[15])  # Ensure frames[15] exists
+        plt.figure(figsize=(10, 6))
+        plt.imshow(diff, cmap='gray')
+        plt.title("Difference between Frame 0 and Frame 15")
+        plt.colorbar(label="Pixel Intensity Difference")
+
+        # Save to PDF
+        plt.savefig("debug_diff_frame0_vs_15.png", format='png')
+
+        # Optional: Close the plot to free memory
+        plt.close()
         return frames
