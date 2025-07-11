@@ -261,8 +261,7 @@ class PrintImageManager:
         # Generate 8-bit dithered frames with equalized brightness
         frames = []
         for f in range(num_frames):
-            mask = (remainder > f)
-            dithered = base + mask.astype(np.uint8)
+            dithered = base + (remainder >= f).astype(np.uint8)
             frames.append(dithered)
         #check for frame brightness uniformity
         for i, f in enumerate(frames):
