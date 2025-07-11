@@ -238,9 +238,12 @@ class PrintImageManager:
         and generates a list of 8-bit dithered frames for temporal exposure simulation.
         Frames are brightness-balanced to avoid flashing.
         """
+        output_dir = "debug_frames"
+        os.makedirs(output_dir, exist_ok=True)  # creates the directory if it doesn't exist
+
         # Convert to NumPy array
         image_array = np.array(image_16bit_pil)
-
+        cv2.imwrite(os.path.join(output_dir, f"input_image16bit.png"), image_16bit_pil)
         # Validate dimensions
         height, width = image_array.shape
         if height > target_height or width > target_width:
@@ -253,10 +256,10 @@ class PrintImageManager:
         y_offset = (target_height - height) // 2
         x_offset = (target_width - width) // 2
         canvas[y_offset:y_offset + height, x_offset:x_offset + width] = image_array
-
+        cv2.imwrite(os.path.join(output_dir, f"letterboxed_image.png"), canvas)
         # Convert to 12-bit (0–4095)
         image_12bit = (canvas >> 4).astype(np.uint16)
-
+        cv2.imwrite(os.path.join(output_dir, f"letterboxed_12bit.png"), image_12bit)
         # Decompose into base 8-bit value and 4-bit remainder
         base = (image_12bit >> 4).astype(np.uint8)  # Most significant 8 bits
         remainder = image_12bit & 0xF  # 4-bit remainder (0–15)
@@ -272,8 +275,7 @@ class PrintImageManager:
         print(f"Frame 0: max in image area = {white_region.max()}, min = {white_region.min()}")
 
         #check for frame brightness uniformity
-        output_dir = "debug_frames"
-        os.makedirs(output_dir, exist_ok=True)  # creates the directory if it doesn't exist
+
         for i, f in enumerate(frames):
             print(f"Frame {i}: mean={np.mean(f):.2f}")
             cv2.imwrite(os.path.join(output_dir, f"debug_frame_{i}.png"), frames[i])
