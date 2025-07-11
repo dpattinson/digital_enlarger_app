@@ -6,6 +6,7 @@ import tifffile
 from app.lut_manager import LUTManager
 from app.image_processor import ImageProcessor
 from app.display_window import DisplayWindow
+from app.NewDisplayWindow import NewDisplayWindow
 from app.testmode_display_window import TestDisplayWindow
 from app.preview_image_manager import PreviewImageManager
 from app.print_image_manager import PrintImageManager
@@ -23,6 +24,7 @@ class Controller:
         self.lut_manager = LUTManager(os.path.join(os.path.dirname(__file__), "..", "luts"))
         self.image_processor = ImageProcessor()
         self.display_window = DisplayWindow()
+        self.new_display_window = NewDisplayWindow()
         self.test_display_window = TestDisplayWindow()
         
         # Separate managers for preview and print concerns
@@ -184,13 +186,16 @@ class Controller:
                 print("about to generate array of 8bit frames")
                 assert isinstance(print_ready_image, np.ndarray), "Input is not a NumPy array"
                 frames_8bit = self.print_manager.generate_dithered_frames_from_tiff(print_ready_image)
-                print("generated array of 8bit frames:" + str(len(frames_8bit)))
-                self.display_window.set_frames(frames_8bit, loop_duration_ms)
-                print("set frames in display window")
-                self.display_window.show_on_secondary_monitor()
-                print("display window displayed")
-                self.display_window.start_display_loop()
-                print("display loop started")
+                #print("generated array of 8bit frames:" + str(len(frames_8bit)))
+                #self.display_window.set_frames(frames_8bit, loop_duration_ms)
+                #print("set frames in display window")
+                #self.display_window.show_on_secondary_monitor()
+                #print("display window displayed")
+                #self.display_window.start_display_loop()
+                #print("display loop started")
+                self.new_display_window.finished.connect(lambda: print("Printing complete."))
+                self.new_display_window.show()
+                self.new_display_window.start_printing(frames_8bit, 10)
                 self.main_window.add_log_entry("Print started on secondary monitor")
 
         except (ValueError, TypeError, RuntimeError) as e:
