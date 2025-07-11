@@ -45,7 +45,7 @@ class NewDisplayWindow(QWidget):
         qimage = QImage(black.data, self.screen_width, self.screen_height, self.screen_width, QImage.Format.Format_Grayscale8)
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
 
-    def _begin_loop(self):
+    def _begin_printing_frame_loop(self):
         """Start frame playback loop."""
         self.timer.start(1000 // self.fps)
 
@@ -54,16 +54,16 @@ class NewDisplayWindow(QWidget):
         self.frames = self._scale_frames_to_screen(frames)
         self.current_frame = 0
 
-        # 🔧 Explicitly assign the window to screen[1] (MacBook)
-        screen = QApplication.screens()[1]  # MacBook internal screen
-        self.windowHandle().setScreen(screen)  # ✅ Prevents fullscreen from hijacking other screen
+        # 🔧 Explicitly assign the window to screen[1]
+        screen = QApplication.screens()[1]
+        self.windowHandle().setScreen(screen)
         self.setGeometry(screen.geometry())
         self.move(screen.geometry().topLeft())
 
-        self.showFullScreen()  # ✅ Now this will *only* go fullscreen on the MacBook
+        self.showFullScreen()
         self.show_black_frame()
 
-        QTimer.singleShot(100, self._begin_loop)
+        QTimer.singleShot(100, self._begin_printing_frame_loop)
         self.stop_timer.start(int(duration * 1000))
 
     def stop_printing(self):
