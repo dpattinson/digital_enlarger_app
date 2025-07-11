@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget, QApplication
 import numpy as np
 from PIL import Image
 
-class NewDisplayWindow(QWidget):
+class PrintingWindow(QWidget):
     finished = pyqtSignal()
 
     def __init__(self, screen_index=1, fps=25):

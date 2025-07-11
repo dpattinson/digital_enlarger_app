@@ -6,11 +6,7 @@ secondary 7680x4320 display, focusing on quality and print-specific optimization
 
 import cv2
 import numpy as np
-from PIL import Image
 
-
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QImage, QPixmap, QPainter, QPen, QColor
 
 
 class PrintImageManager:
@@ -234,34 +230,6 @@ class PrintImageManager:
             validation['estimated_processing_time'] = 'fast'
             
         return validation
-
-
-    def scale_and_pad_qimage(image: QImage, target_width: int, target_height: int) -> QImage:
-        # Scale image preserving aspect ratio, but not bigger than target size
-        print("original image format", image.format())
-        print("original image size", image.size())
-        scaled = image.scaled(target_width, target_height, Qt.AspectRatioMode.KeepAspectRatio,
-                              Qt.TransformationMode.SmoothTransformation)
-        print("scaled image format", scaled.format())
-        print("scaled image size", scaled.size())
-        # Create padded image with black background
-        padded = QImage(target_width, target_height, QImage.Format.Format_Grayscale8)
-        padded.fill(0)  # black for Grayscale8
-        print("padded format:", padded.format())
-        print("padded size:", padded.size())
-
-        assert not padded.isNull(), "Padded QImage is null"
-        pixmap = QPixmap.fromImage(padded)
-        assert not pixmap.isNull(), "Generated QPixmap is null"
-
-        # Center scaled image
-        x_offset = (target_width - scaled.width()) // 2
-        y_offset = (target_height - scaled.height()) // 2
-
-        painter = QPainter(padded)
-        painter.drawImage(x_offset, y_offset, scaled)
-
-        return padded
 
     def generate_dithered_frames_from_tiff(self, image_16bit_pil, target_width=7680, target_height=4320, num_frames=16):
         """
