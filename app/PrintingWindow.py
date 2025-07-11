@@ -12,7 +12,7 @@ class PrintingWindow(QWidget):
         self.screen_index = screen_index
         self.setWindowTitle("Secondary Display - Darkroom Enlarger")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
-        self.setStyleSheet("background-color: white;")
+        self.setStyleSheet("background-color: black;")
 
         self.layout = QVBoxLayout(self)
         self.image_label = QLabel()
@@ -39,11 +39,6 @@ class PrintingWindow(QWidget):
         self.stop_timer = QTimer(self)
         self.stop_timer.setSingleShot(True)
         self.stop_timer.timeout.connect(self.stop_printing)
-
-    def show_black_frame(self):
-        black = np.zeros((self.screen_height, self.screen_width), dtype=np.uint8)
-        qimage = QImage(black.data, self.screen_width, self.screen_height, self.screen_width, QImage.Format.Format_Grayscale8)
-        self.image_label.setPixmap(QPixmap.fromImage(qimage))
 
     def _begin_printing_frame_loop(self):
         self.timer.start(1000 // self.fps)
@@ -72,7 +67,6 @@ class PrintingWindow(QWidget):
         self.move(screen.geometry().topLeft())
 
         self.showFullScreen()
-        self.show_black_frame()
 
         QTimer.singleShot(100, self._begin_printing_frame_loop)
         self.stop_timer.start(int(duration * 1000))
@@ -80,7 +74,6 @@ class PrintingWindow(QWidget):
 
     def stop_printing(self):
         self.timer.stop()
-        self.show_black_frame()
         #debug showing a white frame - todo remove
         QTimer.singleShot(200, self.show_white_frame)
         self.finished.emit()
