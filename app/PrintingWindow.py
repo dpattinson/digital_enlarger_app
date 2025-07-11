@@ -41,8 +41,8 @@ class PrintingWindow(QWidget):
         self.stop_timer.timeout.connect(self.stop_printing)
 
     def show_black_frame(self):
-        black = np.zeros((self.screen_height, self.screen_width), dtype=np.uint8)
-        qimage = QImage(black.data, self.screen_width, self.screen_height, self.screen_width, QImage.Format.Format_Grayscale8)
+        white = np.full((self.screen_height, self.screen_width), 255, dtype=np.uint8)
+        qimage = QImage(white.data, self.screen_width, self.screen_height, self.screen_width, QImage.Format.Format_Grayscale8)
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
 
     def _begin_printing_frame_loop(self):
