@@ -1,5 +1,6 @@
 """Test mode display window for the Darkroom Enlarger Application."""
 import numpy as np
+from PIL import Image
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
@@ -62,11 +63,13 @@ class TestDisplayWindow(QWidget):
         """Display a scaled and padded 8-bit version of a 16-bit grayscale image."""
 
         img_height, img_width = image_data.shape
-        target_height = self.image_label.height()
-        target_width = self.image_label.width()
+        target_height = self.window_height
+        target_width = self.window_width
+
+        resized_image = self.resize_by_height(image_data, target_height)
 
         # Convert to NumPy array
-        image_array = np.array(image_data)
+        image_array = np.array(resized_image)
 
         # Validate dimensions
         height, width = image_array.shape
@@ -90,3 +93,20 @@ class TestDisplayWindow(QWidget):
         pixmap = QPixmap.fromImage(qimage)
         self.image_label.setPixmap(pixmap)
 
+    def resize_by_height(self, image_array: np.ndarray, target_height: int) -> np.ndarray:
+        """
+        Resizes a 16-bit grayscale NumPy array based on target height,
+        keeping the original aspect ratio. Returns a resized 16-bit NumPy array.
+        """
+        original_height, original_width = image_array.shape
+        scale = target_height / original_height
+        target_width = int(original_width * scale)
+
+        # Convert to PIL Image for resizing
+        pil_image = Image.fromarray(image_array, mode='I;16')
+
+        # Resize using LANCZOS for downscaling quality
+        resized_pil = pil_image.resize((target_width, target_height), resample=Image.Resampling.LANCZOS)
+
+        # Convert back to NumPy array
+        return np.array(resized_pil)
