@@ -233,6 +233,7 @@ class PrintImageManager:
         return validation
 
     def generate_dithered_frames_from_array(
+            self,
             image_array: np.ndarray,
             target_width=7680,
             target_height=4320,
