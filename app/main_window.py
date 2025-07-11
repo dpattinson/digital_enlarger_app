@@ -200,6 +200,7 @@ class MainWindow(QMainWindow):
         self.processing_log.clear()
         self.add_log_entry("Log cleared")
 
+    #unused
     def display_image_in_preview(self, image_data):
         """Displays the given image data in the preview_label.
 

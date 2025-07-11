@@ -184,7 +184,7 @@ These tests require PyQt6 and may need special CI setup:
 
 ```bash
 # UI component tests (may require display)
-python -m pytest tests/test_main_window.py tests/test_display_window.py -v
+python -m pytest tests/test_main_window.py tests/testmode_display_window.py -v
 ```
 
 **Characteristics:**

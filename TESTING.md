@@ -87,7 +87,7 @@ Tests requiring PyQt6 and GUI components:
 
 ```bash
 # Run UI tests (may require display environment)
-python -m pytest tests/test_main_window.py tests/test_display_window.py -v
+python -m pytest tests/test_main_window.py tests/testmode_display_window.py -v
 ```
 
 **Note:** These tests may fail in headless environments and require special CI setup.

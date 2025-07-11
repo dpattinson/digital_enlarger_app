@@ -6,7 +6,11 @@ secondary 7680x4320 display, focusing on quality and print-specific optimization
 
 import cv2
 import numpy as np
-from typing import List, Tuple, Optional, Dict, Any
+from PIL import Image
+
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QImage, QPixmap, QPainter, QPen, QColor
 
 
 class PrintImageManager:
@@ -30,7 +34,7 @@ class PrintImageManager:
         self.cv2_rotate = cv2_rotate or cv2.rotate
         self.cv2_bitwise_not = cv2_bitwise_not or cv2.bitwise_not
         
-    def prepare_print_image(self, image_data, lut_data, apply_squashing=False, compression_ratio=3):
+    def prepare_print_image(self, image_data, lut_data):
         """Prepare an image for high-quality printing display.
         
         Complete print processing pipeline including LUT application, inversion,
@@ -39,8 +43,6 @@ class PrintImageManager:
         Args:
             image_data (numpy.ndarray): Input image data (16-bit grayscale)
             lut_data (numpy.ndarray): LUT data for color correction
-            apply_squashing (bool): Whether to apply image squashing optimization
-            compression_ratio (int): Compression ratio for squashing (if applied)
             
         Returns:
             numpy.ndarray: Print-ready image data
@@ -59,17 +61,8 @@ class PrintImageManager:
         
         # Invert image (negative to positive)
         inverted_image = self.invert_image(processed_image)
-        
-        # Apply optional squashing for display optimization
-        if apply_squashing:
-            final_image = self.squash_image_for_display(inverted_image, compression_ratio)
-        else:
-            final_image = inverted_image
-            
-        # Pad to 8K display dimensions with white borders
-        display_ready_image = self.pad_image_for_8k_display(final_image)
-        
-        return display_ready_image
+
+        return inverted_image
         
     def apply_lut(self, image, lut):
         """Apply Look-Up Table (LUT) to the image for color correction.
@@ -106,121 +99,8 @@ class PrintImageManager:
             
         # Use OpenCV's bitwise_not for efficient inversion
         return self.cv2_bitwise_not(image)
-        
-    def squash_image_for_display(self, image_data, compression_ratio=3):
-        """Compress image width for monochrome display optimization.
-        
-        Compresses only the width dimension by averaging pixels horizontally,
-        maintaining height unchanged for display characteristics optimization.
-        
-        Args:
-            image_data (numpy.ndarray): Input image data
-            compression_ratio (int): Compression ratio for width reduction
-            
-        Returns:
-            numpy.ndarray: Width-compressed image data
-        """
-        if image_data is None:
-            raise ValueError("Cannot squash None image")
-            
-        if image_data.ndim != 2:
-            raise ValueError(f"Can only squash 2D grayscale images. Found {image_data.ndim} dimensions")
-            
-        if compression_ratio < 1:
-            raise ValueError(f"Compression ratio must be >= 1, got {compression_ratio}")
-            
-        height, width = image_data.shape
-        new_width = width // compression_ratio
-        
-        if new_width == 0:
-            raise ValueError(f"Image too narrow ({width}px) for compression ratio {compression_ratio}")
-            
-        # Create output image with same height, compressed width
-        squashed_image = np.zeros((height, new_width), dtype=image_data.dtype)
-        
-        # Compress width by averaging pixels in compression windows
-        for y in range(height):
-            for x in range(new_width):
-                start_x = x * compression_ratio
-                end_x = min(start_x + compression_ratio, width)
-                
-                # Average pixels in the compression window
-                window_pixels = image_data[y, start_x:end_x]
-                squashed_image[y, x] = np.mean(window_pixels).astype(image_data.dtype)
-                
-        return squashed_image
-        
-    def pad_image_for_8k_display(self, image_data):
-        """Pad image to exact 8K display dimensions with white borders.
-        
-        Args:
-            image_data (numpy.ndarray): Input image data
-            
-        Returns:
-            numpy.ndarray: 8K display-ready image with white padding
-        """
-        if image_data is None:
-            raise ValueError("Cannot pad None image")
-            
-        if image_data.ndim != 2:
-            raise ValueError(f"Expected 2D grayscale image, got {image_data.ndim}D")
-            
-        height, width = image_data.shape
-        
-        # Check if image is larger than display (should not happen per requirements)
-        if height > self.DISPLAY_HEIGHT or width > self.DISPLAY_WIDTH:
-            raise ValueError(
-                f"Image ({width}×{height}) exceeds 8K display dimensions "
-                f"({self.DISPLAY_WIDTH}×{self.DISPLAY_HEIGHT})"
-            )
-            
-        # Create white background (maximum value for the data type)
-        if image_data.dtype == np.uint8:
-            background_value = 255
-        elif image_data.dtype == np.uint16:
-            background_value = 65535
-        else:
-            background_value = np.iinfo(image_data.dtype).max
-            
-        # Create 8K canvas with white background
-        padded_image = np.full(
-            (self.DISPLAY_HEIGHT, self.DISPLAY_WIDTH), 
-            background_value, 
-            dtype=image_data.dtype
-        )
-        
-        # Calculate centering offsets
-        y_offset = (self.DISPLAY_HEIGHT - height) // 2
-        x_offset = (self.DISPLAY_WIDTH - width) // 2
-        
-        # Place image in center of canvas
-        padded_image[y_offset:y_offset + height, x_offset:x_offset + width] = image_data
-        
-        return padded_image
-        
-    def emulate_12bit_to_8bit_frames(self, image_16bit):
-        """Generate 8-bit frames for 12-bit emulation printing.
-        
-        Args:
-            image_16bit (numpy.ndarray): 16-bit input image data
-            
-        Returns:
-            list: List of 8-bit numpy arrays representing frames
-        """
-        if image_16bit is None:
-            raise ValueError("Cannot generate frames from None image")
-            
-        if image_16bit.ndim != 2:
-            raise ValueError(f"Expected 2D image, got {image_16bit.ndim}D")
-            
-        frames_8bit = []
-        
-        # Just generate a single 8 bit version of the file for now
-        for shift in range(1):
-            frame = image_16bit.astype(np.uint8)
-            frames_8bit.append(frame)
-            
-        return frames_8bit
+
+
         
     def get_print_processing_info(self, original_image, processed_image):
         """Get detailed information about print processing.
@@ -355,3 +235,64 @@ class PrintImageManager:
             
         return validation
 
+
+    def scale_and_pad_qimage(image: QImage, target_width: int, target_height: int) -> QImage:
+        # Scale image preserving aspect ratio, but not bigger than target size
+        print("original image format", image.format())
+        print("original image size", image.size())
+        scaled = image.scaled(target_width, target_height, Qt.AspectRatioMode.KeepAspectRatio,
+                              Qt.TransformationMode.SmoothTransformation)
+        print("scaled image format", scaled.format())
+        print("scaled image size", scaled.size())
+        # Create padded image with black background
+        padded = QImage(target_width, target_height, QImage.Format.Format_Grayscale8)
+        padded.fill(0)  # black for Grayscale8
+        print("padded format:", padded.format())
+        print("padded size:", padded.size())
+
+        assert not padded.isNull(), "Padded QImage is null"
+        pixmap = QPixmap.fromImage(padded)
+        assert not pixmap.isNull(), "Generated QPixmap is null"
+
+        # Center scaled image
+        x_offset = (target_width - scaled.width()) // 2
+        y_offset = (target_height - scaled.height()) // 2
+
+        painter = QPainter(padded)
+        painter.drawImage(x_offset, y_offset, scaled)
+
+        return padded
+
+    def generate_dithered_frames_from_tiff(self, image_16bit_pil, target_width=7680, target_height=4320, num_frames=16):
+        """
+        Accepts a 16-bit grayscale PIL Image, pads it to target size,
+        and returns a list of 8-bit frames simulating 12-bit output.
+        """
+        # Convert to NumPy array
+        image_array = np.array(image_16bit_pil)
+
+        # Validate dimensions
+        height, width = image_array.shape
+        if height > target_height or width > target_width:
+            raise ValueError(f"Image size {width}x{height} exceeds target {target_width}x{target_height}.")
+
+        # Create black canvas and center the image
+        canvas = np.zeros((target_height, target_width), dtype=np.uint16)
+        y_offset = (target_height - height) // 2
+        x_offset = (target_width - width) // 2
+        canvas[y_offset:y_offset + height, x_offset:x_offset + width] = image_array
+
+        # Convert to 12-bit (0–4095)
+        image_12bit = canvas.astype(np.uint32) >> 4
+
+        # Decompose into base 8-bit value and 4-bit remainder
+        base = (image_12bit >> 4).astype(np.uint8)
+        remainder = image_12bit & 0b1111
+
+        # Generate 8-bit dithered frames
+        frames = []
+        for f in range(num_frames):
+            dithered = base + (remainder > f).astype(np.uint8)
+            frames.append(dithered)
+
+        return frames
