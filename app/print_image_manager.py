@@ -260,12 +260,4 @@ def scale_and_pad_qimage(image: QImage, target_width: int, target_height: int) -
     painter = QPainter(padded)
     painter.drawImage(x_offset, y_offset, scaled)
 
-    from PyQt6.QtGui import QPen
-
-    pen = QPen(QColor(255, 0, 0))
-    pen.setWidth(3)
-    painter.setPen(pen)
-    painter.drawRect(0, 0, padded.width() - 1, padded.height() - 1)
-    painter.end()
-
     return padded

@@ -5,7 +5,7 @@ import tifffile
 from app.lut_manager import LUTManager
 from app.image_processor import ImageProcessor
 from app.display_window import DisplayWindow
-from app.test_display_window import TestDisplayWindow
+from app.testmode_display_window import TestDisplayWindow
 from app.preview_image_manager import PreviewImageManager
 from app.print_image_manager import PrintImageManager
 
