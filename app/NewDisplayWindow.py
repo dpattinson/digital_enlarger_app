@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget, QApplication
 import numpy as np
 from PIL import Image
 
@@ -46,24 +46,21 @@ class NewDisplayWindow(QWidget):
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
 
     def start_printing(self, frames: list[np.ndarray], duration: float):
+        """Starts the printing sequence on screen[1] (MacBook display) without blanking external display."""
         self.frames = self._scale_frames_to_screen(frames)
         self.current_frame = 0
 
-        # Ensure the window appears on the secondary screen
-        screens = self.screen().virtualSiblings()
-        target_screen = screens[self.screen_index]  # Store screen_index in __init__
-        self.setScreen(target_screen)  # 🔑 Explicitly assign screen
-        self.setGeometry(target_screen.geometry())
-        self.move(target_screen.geometry().topLeft())
+        # 🔧 Explicitly assign the window to screen[1] (MacBook)
+        screen = QApplication.screens()[1]  # MacBook internal screen
+        self.windowHandle().setScreen(screen)  # ✅ Prevents fullscreen from hijacking other screen
+        self.setGeometry(screen.geometry())
+        self.move(screen.geometry().topLeft())
 
-        self.showFullScreen()
+        self.showFullScreen()  # ✅ Now this will *only* go fullscreen on the MacBook
         self.show_black_frame()
 
         QTimer.singleShot(100, self._begin_loop)
         self.stop_timer.start(int(duration * 1000))
-
-    def _begin_loop(self):
-        self.timer.start(1000 // self.fps)
 
     def stop_printing(self):
         """Stops playback and resets the screen to black."""
