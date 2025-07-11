@@ -4,9 +4,6 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
 
-from app.print_image_manager import scale_and_pad_qimage
-
-
 class TestDisplayWindow(QWidget):
     """A windowed display for testing print output with the same aspect ratio as the secondary display."""
 
@@ -65,29 +62,31 @@ class TestDisplayWindow(QWidget):
         """Display a scaled and padded 8-bit version of a 16-bit grayscale image."""
 
         img_height, img_width = image_data.shape
-        container_height = self.image_label.height()
-        container_width = self.image_label.width()
+        target_height = self.image_label.height()
+        target_width = self.image_label.width()
 
-        # --------- Step 1: Normalize 16-bit -> 8-bit ----------
-        # Ensure image_data is numpy.uint16
-        image_8bit = (image_data / 256).astype(np.uint8)
+        # Convert to NumPy array
+        image_array = np.array(image_data)
 
-        # --------- Step 2: Create QImage (8-bit) ----------
-        q_image = QImage(
-            image_8bit.data,
-            img_width,
-            img_height,
-            img_width,  # bytes per line for 8-bit
-            QImage.Format.Format_Grayscale8
-        )
+        # Validate dimensions
+        height, width = image_array.shape
+        if height > target_height or width > target_width:
+            raise ValueError(f"Image size {width}x{height} exceeds target {target_width}x{target_height}.")
 
-        # --------- Step 3: Scale image by height ----------
-        # resized_image = q_image.scaledToHeight(700, Qt.TransformationMode.SmoothTransformation)
+        # Create black canvas and center the image
+        canvas = np.zeros((target_height, target_width), dtype=np.uint16)
+        y_offset = (target_height - height) // 2
+        x_offset = (target_width - width) // 2
+        canvas[y_offset:y_offset + height, x_offset:x_offset + width] = image_array
 
-        # --------- Step 4: Pad image to label dimensions ----------
-        image_padded = scale_and_pad_qimage(q_image, container_width, container_height)
+        # Normalize 16-bit image to 8-bit
+        image_8bit = (canvas / 256).astype(np.uint8)  # Scale 0–65535 → 0–255
+
+        # Convert to QImage (grayscale format)
+        height, width = image_8bit.shape
+        qimage = QImage(image_8bit.data, width, height, width, QImage.Format.Format_Grayscale8)
 
         # --------- Step 5: Display ----------
-        pixmap = QPixmap.fromImage(image_padded)
+        pixmap = QPixmap.fromImage(qimage)
         self.image_label.setPixmap(pixmap)
 
