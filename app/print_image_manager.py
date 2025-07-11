@@ -263,44 +263,6 @@ class PrintImageManager:
         for f in range(num_frames):
             dithered = base.astype(np.uint16) + (remainder >= f).astype(np.uint16)
             clipped = np.clip(dithered, 0, 255).astype(np.uint8)
-
-            if draw_frame_numbers:
-                annotated = clipped.copy()
-
-                # Text settings
-                text = str(f)
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                font_scale = 2.5
-                thickness = 5
-                text_color = 0  # black text
-                bg_color = 192  # mid-grey background
-
-                # Measure text size
-                text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
-                box_w, box_h = text_size[0] + 20, text_size[1] + 20  # padding
-                box_coords = [
-                    (target_width - box_w, 0),  # top-right
-                    (target_width - box_w, target_height - box_h),  # bottom-right
-                    (0, target_height - box_h),  # bottom-left
-                    (0, 0),  # top-left
-                ]
-                corner = box_coords[f % 4]
-                box_x, box_y = corner
-
-                # Draw grey rectangle and frame number
-                cv2.rectangle(annotated, (box_x, box_y), (box_x + box_w, box_y + box_h), color=bg_color, thickness=-1)
-                cv2.putText(
-                    annotated,
-                    text,
-                    (box_x + 10, box_y + box_h - 10),
-                    font,
-                    font_scale,
-                    text_color,
-                    thickness,
-                    lineType=cv2.LINE_AA
-                )
-                frames.append(annotated)
-            else:
-                frames.append(clipped)
+            frames.append(clipped)
 
         return frames
