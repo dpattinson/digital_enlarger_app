@@ -6,7 +6,7 @@ focusing on speed and responsiveness rather than print quality.
 
 import cv2
 import numpy as np
-from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtGui import QPixmap, QImage, QPainter
 from PyQt6.QtCore import Qt
 
 
