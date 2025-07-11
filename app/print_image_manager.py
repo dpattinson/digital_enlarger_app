@@ -6,7 +6,8 @@ secondary 7680x4320 display, focusing on quality and print-specific optimization
 
 import cv2
 import numpy as np
-from typing import List, Tuple, Optional, Dict, Any
+from PIL import Image
+
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap, QPainter, QPen, QColor
@@ -235,29 +236,63 @@ class PrintImageManager:
         return validation
 
 
-def scale_and_pad_qimage(image: QImage, target_width: int, target_height: int) -> QImage:
-    # Scale image preserving aspect ratio, but not bigger than target size
-    print("original image format", image.format())
-    print("original image size", image.size())
-    scaled = image.scaled(target_width, target_height, Qt.AspectRatioMode.KeepAspectRatio,
-                          Qt.TransformationMode.SmoothTransformation)
-    print("scaled image format", scaled.format())
-    print("scaled image size", scaled.size())
-    # Create padded image with black background
-    padded = QImage(target_width, target_height, QImage.Format.Format_Grayscale8)
-    padded.fill(0)  # black for Grayscale8
-    print("padded format:", padded.format())
-    print("padded size:", padded.size())
+    def scale_and_pad_qimage(image: QImage, target_width: int, target_height: int) -> QImage:
+        # Scale image preserving aspect ratio, but not bigger than target size
+        print("original image format", image.format())
+        print("original image size", image.size())
+        scaled = image.scaled(target_width, target_height, Qt.AspectRatioMode.KeepAspectRatio,
+                              Qt.TransformationMode.SmoothTransformation)
+        print("scaled image format", scaled.format())
+        print("scaled image size", scaled.size())
+        # Create padded image with black background
+        padded = QImage(target_width, target_height, QImage.Format.Format_Grayscale8)
+        padded.fill(0)  # black for Grayscale8
+        print("padded format:", padded.format())
+        print("padded size:", padded.size())
 
-    assert not padded.isNull(), "Padded QImage is null"
-    pixmap = QPixmap.fromImage(padded)
-    assert not pixmap.isNull(), "Generated QPixmap is null"
+        assert not padded.isNull(), "Padded QImage is null"
+        pixmap = QPixmap.fromImage(padded)
+        assert not pixmap.isNull(), "Generated QPixmap is null"
 
-    # Center scaled image
-    x_offset = (target_width - scaled.width()) // 2
-    y_offset = (target_height - scaled.height()) // 2
+        # Center scaled image
+        x_offset = (target_width - scaled.width()) // 2
+        y_offset = (target_height - scaled.height()) // 2
 
-    painter = QPainter(padded)
-    painter.drawImage(x_offset, y_offset, scaled)
+        painter = QPainter(padded)
+        painter.drawImage(x_offset, y_offset, scaled)
 
-    return padded
+        return padded
+
+    def generate_dithered_frames_from_tiff(image_16bit_pil, target_width=7680, target_height=4320, num_frames=16):
+        """
+        Accepts a 16-bit grayscale PIL Image, pads it to target size,
+        and returns a list of 8-bit frames simulating 12-bit output.
+        """
+        # Convert to NumPy array
+        image_array = np.array(image_16bit_pil)
+
+        # Validate dimensions
+        height, width = image_array.shape
+        if height > target_height or width > target_width:
+            raise ValueError(f"Image size {width}x{height} exceeds target {target_width}x{target_height}.")
+
+        # Create black canvas and center the image
+        canvas = np.zeros((target_height, target_width), dtype=np.uint16)
+        y_offset = (target_height - height) // 2
+        x_offset = (target_width - width) // 2
+        canvas[y_offset:y_offset + height, x_offset:x_offset + width] = image_array
+
+        # Convert to 12-bit (0–4095)
+        image_12bit = canvas.astype(np.uint32) >> 4
+
+        # Decompose into base 8-bit value and 4-bit remainder
+        base = (image_12bit >> 4).astype(np.uint8)
+        remainder = image_12bit & 0b1111
+
+        # Generate 8-bit dithered frames
+        frames = []
+        for f in range(num_frames):
+            dithered = base + (remainder > f).astype(np.uint8)
+            frames.append(dithered)
+
+        return frames
