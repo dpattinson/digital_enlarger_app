@@ -232,18 +232,19 @@ class PrintImageManager:
             
         return validation
 
-    def generate_dithered_frames_from_tiff(self, image_16bit_pil, target_width=7680, target_height=4320, num_frames=16):
+    def generate_dithered_frames_from_array(self, image_array: np.ndarray, target_width=7680, target_height=4320,
+                                            num_frames=16):
         """
-        Converts a 16-bit grayscale PIL image into a centered 12-bit representation
-        and generates a list of 8-bit dithered frames for temporal exposure simulation.
+        Accepts a 16-bit grayscale NumPy array, pads it to target size,
+        and returns a list of 8-bit dithered frames simulating 12-bit output.
         Frames are brightness-balanced to avoid flashing.
         """
+        assert isinstance(image_array, np.ndarray), "Input is not a NumPy array"
+
         output_dir = "debug_frames"
         os.makedirs(output_dir, exist_ok=True)  # creates the directory if it doesn't exist
 
-        # Convert to NumPy array
-        image_array = np.array(image_16bit_pil)
-        cv2.imwrite(os.path.join(output_dir, f"input_image16bit.png"), image_16bit_pil)
+        cv2.imwrite(os.path.join(output_dir, f"input_image16bit.png"), image_array)
         # Validate dimensions
         height, width = image_array.shape
         if height > target_height or width > target_width:
@@ -267,8 +268,9 @@ class PrintImageManager:
         # Generate 8-bit dithered frames with equalized brightness
         frames = []
         for f in range(num_frames):
-            dithered = base + (remainder >= f).astype(np.uint8)
-            frames.append(dithered)
+            dithered = base.astype(np.uint16) + (remainder >= f).astype(np.uint16)
+            clipped = np.clip(dithered, 0, 255).astype(np.uint8)
+            frames.append(clipped)
 
         #check frame 0 has white values in it
         white_region = frames[0][y_offset:y_offset + height, x_offset:x_offset + width]
