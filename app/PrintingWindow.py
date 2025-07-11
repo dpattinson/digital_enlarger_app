@@ -7,7 +7,7 @@ import cv2
 class PrintingWindow(QWidget):
     finished = pyqtSignal()
 
-    def __init__(self, screen_index=1, fps=25):
+    def __init__(self, screen_index=1, fps=1):
         super().__init__()
         self.screen_index = screen_index
         self.setWindowTitle("Secondary Display - Darkroom Enlarger")
