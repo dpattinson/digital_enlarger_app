@@ -265,6 +265,11 @@ class PrintImageManager:
         for f in range(num_frames):
             dithered = base + (remainder >= f).astype(np.uint8)
             frames.append(dithered)
+
+        #check frame 0 has white values in it
+        white_region = frames[0][y_offset:y_offset + height, x_offset:x_offset + width]
+        print(f"Frame 0: max in image area = {white_region.max()}, min = {white_region.min()}")
+
         #check for frame brightness uniformity
         for i, f in enumerate(frames):
             print(f"Frame {i}: mean={np.mean(f):.2f}")
