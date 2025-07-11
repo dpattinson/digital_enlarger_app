@@ -233,8 +233,9 @@ class PrintImageManager:
 
     def generate_dithered_frames_from_tiff(self, image_16bit_pil, target_width=7680, target_height=4320, num_frames=16):
         """
-        Accepts a 16-bit grayscale PIL Image, pads it to target size,
-        and returns a list of 8-bit frames simulating 12-bit output.
+        Converts a 16-bit grayscale PIL image into a centered 12-bit representation
+        and generates a list of 8-bit dithered frames for temporal exposure simulation.
+        Frames are brightness-balanced to avoid flashing.
         """
         # Convert to NumPy array
         image_array = np.array(image_16bit_pil)
@@ -251,18 +252,19 @@ class PrintImageManager:
         canvas[y_offset:y_offset + height, x_offset:x_offset + width] = image_array
 
         # Convert to 12-bit (0–4095)
-        image_12bit = canvas.astype(np.uint32) >> 4
+        image_12bit = (canvas >> 4).astype(np.uint16)
 
         # Decompose into base 8-bit value and 4-bit remainder
-        base = (image_12bit >> 4).astype(np.uint8)
-        remainder = image_12bit & 0b1111
+        base = (image_12bit >> 4).astype(np.uint8)  # Most significant 8 bits
+        remainder = image_12bit & 0xF  # 4-bit remainder (0–15)
 
-        # Generate 8-bit dithered frames
+        # Generate 8-bit dithered frames with equalized brightness
         frames = []
         for f in range(num_frames):
-            dithered = base + (remainder > f).astype(np.uint8)
+            mask = (remainder > f)
+            dithered = base + mask.astype(np.uint8)
             frames.append(dithered)
-        #print out the mean brightness of the frames for debugging
+        #check for frame brightness uniformity
         for i, f in enumerate(frames):
-            print(f"Frame {i}: min={f.min()}, max={f.max()}, mean={f.mean():.2f}")
+            print(f"Frame {i}: mean={np.mean(f):.2f}")
         return frames
