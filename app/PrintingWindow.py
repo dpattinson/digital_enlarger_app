@@ -87,12 +87,12 @@ class PrintingWindow(QWidget):
         is_not_sumopai_screen = (screen_width, screen_height) != (7680, 4320)
 
         if is_not_sumopai_screen:
-            # Convert grayscale frame to RGB to avoid mac rendering issues
+            print(" not sumopai - Convert grayscale frame to RGB to avoid mac rendering issues")
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
             h, w, _ = rgb_frame.shape
             qimage = QImage(rgb_frame.data, w, h, 3 * w, QImage.Format.Format_RGB888)
         else:
-            # Display directly as 8-bit grayscale
+            print("sumopai - Display directly as 8-bit grayscale")
             h, w = frame.shape
             stride = frame.strides[0]
             qimage = QImage(frame.data, w, h, stride, QImage.Format.Format_Grayscale8)
