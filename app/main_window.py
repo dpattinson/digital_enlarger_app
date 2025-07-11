@@ -1,11 +1,10 @@
 """Main application window for the Darkroom Enlarger Application."""
 from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel,
-    QLineEdit, QHBoxLayout, QFileDialog, QTextEdit
+    QLineEdit, QHBoxLayout, QTextEdit
 )
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
-import numpy as np
 from datetime import datetime
 from app.image_display_manager import ImageDisplayManager
 
@@ -21,6 +20,20 @@ class MainWindow(QMainWindow):
                         Defaults to QtFileDialog() if not provided.
         """
         super().__init__()
+        self.lut_label = QLabel("Tone Map LUT:")
+        self.lut_path_display = QLineEdit()
+        self.browse_lut_button = QPushButton("Browse LUT")
+        self.image_label = QLabel("Input Image:")
+        self.image_path_display = QLineEdit()
+        self.browse_image_button = QPushButton("Browse")
+        self.preview_label = QLabel("No Image Loaded")
+        self.process_image_button = QPushButton("Process Image")
+        self.test_mode_button = QPushButton("Test Mode: OFF")
+        self.processing_log = QTextEdit()
+        self.print_button = QPushButton("Start Print")
+        self.stop_button = QPushButton("Stop Print")
+        self.exposure_label = QLabel("Exposure Duration (s):")
+        self.exposure_input = QLineEdit("30") # Default to 30 seconds
         self.display_manager = display_manager or ImageDisplayManager()
         
         # Import here to avoid circular imports
@@ -39,10 +52,7 @@ class MainWindow(QMainWindow):
         """Sets up the user interface elements and their layout."""
         # Tone Map Selector
         lut_layout = QHBoxLayout()
-        self.lut_label = QLabel("Tone Map LUT:")
-        self.lut_path_display = QLineEdit()
         self.lut_path_display.setReadOnly(True)
-        self.browse_lut_button = QPushButton("Browse LUT")
         lut_layout.addWidget(self.lut_label)
         lut_layout.addWidget(self.lut_path_display)
         lut_layout.addWidget(self.browse_lut_button)
@@ -50,17 +60,13 @@ class MainWindow(QMainWindow):
 
         # Image Loader
         image_layout = QHBoxLayout()
-        self.image_label = QLabel("Input Image:")
-        self.image_path_display = QLineEdit()
         self.image_path_display.setReadOnly(True)
-        self.browse_image_button = QPushButton("Browse")
         image_layout.addWidget(self.image_label)
         image_layout.addWidget(self.image_path_display)
         image_layout.addWidget(self.browse_image_button)
         self.layout.addLayout(image_layout)
 
         # Preview Area
-        self.preview_label = QLabel("No Image Loaded")
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # Set fixed size with 16:9 aspect ratio (7680:4320 scaled down)
         self.preview_label.setFixedSize(768, 432)  # 16:9 aspect ratio
@@ -69,11 +75,9 @@ class MainWindow(QMainWindow):
 
         # Process Image Control
         process_layout = QHBoxLayout()
-        self.process_image_button = QPushButton("Process Image")
         process_layout.addWidget(self.process_image_button)
         
         # Test Mode Toggle
-        self.test_mode_button = QPushButton("Test Mode: OFF")
         self.test_mode_button.setCheckable(True)
         self.test_mode_button.setStyleSheet("""
             QPushButton { background-color: #333333; color: #f0f0f0; 
@@ -91,8 +95,7 @@ class MainWindow(QMainWindow):
         # Processing Summary - Scrollable Log
         processing_log_label = QLabel("Processing Log:")
         self.layout.addWidget(processing_log_label)
-        
-        self.processing_log = QTextEdit()
+
         self.processing_log.setReadOnly(True)
         self.processing_log.setMaximumHeight(120)  # Limit height to keep it compact
         self.processing_log.setStyleSheet("""
@@ -112,10 +115,6 @@ class MainWindow(QMainWindow):
 
         # Print Control
         print_control_layout = QHBoxLayout()
-        self.print_button = QPushButton("Start Print")
-        self.stop_button = QPushButton("Stop Print")
-        self.exposure_label = QLabel("Exposure Duration (s):")
-        self.exposure_input = QLineEdit("30") # Default to 30 seconds
         self.exposure_input.setFixedWidth(50)
 
         print_control_layout.addWidget(self.print_button)

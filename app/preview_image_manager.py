@@ -223,7 +223,7 @@ class PreviewImageManager:
             
         return validation
 
-    def scale_and_pad_qimage(image: QImage, target_width: int, target_height: int) -> QImage:
+    def scale_and_pad_qimage(self, image: QImage, target_width: int, target_height: int) -> QImage:
         # Scale image preserving aspect ratio, but not bigger than target size
         print("original image format", image.format())
         print("original image size", image.size())

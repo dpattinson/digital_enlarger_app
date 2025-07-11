@@ -2,11 +2,9 @@
 import os
 import cv2
 import numpy as np
-import tifffile
 from app.lut_manager import LUTManager
 from app.image_processor import ImageProcessor
-from app.display_window import DisplayWindow
-from app.NewDisplayWindow import NewDisplayWindow
+from app.PrintingWindow import PrintingWindow
 from app.testmode_display_window import TestDisplayWindow
 from app.preview_image_manager import PreviewImageManager
 from app.print_image_manager import PrintImageManager
@@ -23,8 +21,7 @@ class Controller:
         self.main_window = main_window
         self.lut_manager = LUTManager(os.path.join(os.path.dirname(__file__), "..", "luts"))
         self.image_processor = ImageProcessor()
-        self.display_window = DisplayWindow()
-        self.new_display_window = NewDisplayWindow()
+        self.printing_window = PrintingWindow()
         self.test_display_window = TestDisplayWindow()
         
         # Separate managers for preview and print concerns
@@ -193,9 +190,9 @@ class Controller:
                 #print("display window displayed")
                 #self.display_window.start_display_loop()
                 #print("display loop started")
-                self.new_display_window.finished.connect(lambda: print("Printing complete."))
-                self.new_display_window.show()
-                self.new_display_window.start_printing(frames_8bit, 10)
+                self.printing_window.finished.connect(lambda: print("Printing complete."))
+                self.printing_window.show()
+                self.printing_window.start_printing(frames_8bit, 10)
                 self.main_window.add_log_entry("Print started on secondary monitor")
 
         except (ValueError, TypeError, RuntimeError) as e:
@@ -204,7 +201,7 @@ class Controller:
     def stop_print(self):
         """Stops the image display loop for both normal and test mode."""
         # Stop both display windows to ensure clean state
-        self.display_window.stop_display_loop()
+        self.printing_window.stop_printing()
         self.test_display_window.stop_display()
         self.main_window.add_log_entry("Print stopped")
         
