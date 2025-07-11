@@ -75,7 +75,7 @@ class PrintingWindow(QWidget):
     def stop_printing(self):
         self.timer.stop()
         #debug showing a white frame - todo remove
-        QTimer.singleShot(200, self.show_white_frame)
+        #QTimer.singleShot(200, self.show_white_frame)
         self.finished.emit()
 
     def update_frame(self):
@@ -84,18 +84,9 @@ class PrintingWindow(QWidget):
         screen_width = screen.geometry().width()
         screen_height = screen.geometry().height()
 
-        is_not_sumopai_screen = (screen_width, screen_height) != (7680, 4320)
-
-        if is_not_sumopai_screen:
-            print(" not sumopai - Convert grayscale frame to RGB to avoid mac rendering issues")
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
-            h, w, _ = rgb_frame.shape
-            qimage = QImage(rgb_frame.data, w, h, 3 * w, QImage.Format.Format_RGB888)
-        else:
-            print("sumopai - Display directly as 8-bit grayscale")
-            h, w = frame.shape
-            stride = frame.strides[0]
-            qimage = QImage(frame.data, w, h, stride, QImage.Format.Format_Grayscale8)
+        h, w = frame.shape
+        stride = frame.strides[0]
+        qimage = QImage(frame.data, w, h, stride, QImage.Format.Format_Grayscale8)
 
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
         self.current_frame = (self.current_frame + 1) % len(self.frames)
