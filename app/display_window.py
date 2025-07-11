@@ -42,9 +42,9 @@ class DisplayWindow(QWidget):
             return
 
         # Calculate interval per frame to achieve desired loop duration
-        interval_per_frame = int(self.loop_duration_ms / len(self.frames) / 4)
+        interval_per_frame = int(self.loop_duration_ms / len(self.frames))
         if interval_per_frame <= 0:
-            interval_per_frame = 1 # Ensure at least 500ms interval
+            interval_per_frame = 1 # Ensure at least 1ms interval
 
         self.start_time = self.frame_timer.remainingTime() # Not accurate, but for simulation
         self.frame_timer.start(interval_per_frame)
@@ -64,7 +64,7 @@ class DisplayWindow(QWidget):
         frame_data = self.frames[self.current_frame_index]
         h, w = frame_data.shape
         # QImage.Format_Grayscale8 is for 8-bit grayscale images
-        q_image = QImage(frame_data.data, w, h, QImage.Format.Format_Grayscale8)
+        q_image = QImage(frame_data.data, w/2, h/2, QImage.Format.Format_Grayscale8)
         pixmap = QPixmap.fromImage(q_image)
         self.image_label.setPixmap(pixmap)
 
