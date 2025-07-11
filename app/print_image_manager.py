@@ -241,26 +241,20 @@ class PrintImageManager:
         """
         assert isinstance(image_array, np.ndarray), "Input is not a NumPy array"
 
-        output_dir = "debug_frames"
-        os.makedirs(output_dir, exist_ok=True)  # creates the directory if it doesn't exist
-
-        cv2.imwrite(os.path.join(output_dir, f"input_image16bit.png"), image_array)
         # Validate dimensions
         height, width = image_array.shape
         if height > target_height or width > target_width:
             raise ValueError(f"Image size {width}x{height} exceeds target {target_width}x{target_height}.")
-        #check that the image has full tone range
-        print(f"image_array max={image_array.max()}, min={image_array.min()}")
 
         # Create black canvas and center the image
         canvas = np.zeros((target_height, target_width), dtype=np.uint16)
         y_offset = (target_height - height) // 2
         x_offset = (target_width - width) // 2
         canvas[y_offset:y_offset + height, x_offset:x_offset + width] = image_array
-        cv2.imwrite(os.path.join(output_dir, f"letterboxed_image.png"), canvas)
+
         # Convert to 12-bit (0–4095)
         image_12bit = (canvas >> 4).astype(np.uint16)
-        cv2.imwrite(os.path.join(output_dir, f"letterboxed_12bit.png"), image_12bit)
+
         # Decompose into base 8-bit value and 4-bit remainder
         base = (image_12bit >> 4).astype(np.uint8)  # Most significant 8 bits
         remainder = image_12bit & 0xF  # 4-bit remainder (0–15)
@@ -272,29 +266,4 @@ class PrintImageManager:
             clipped = np.clip(dithered, 0, 255).astype(np.uint8)
             frames.append(clipped)
 
-        #check frame 0 has white values in it
-        white_region = frames[0][y_offset:y_offset + height, x_offset:x_offset + width]
-        print(f"Frame 0: max in image area = {white_region.max()}, min = {white_region.min()}")
-
-        #check for frame brightness uniformity
-
-        for i, f in enumerate(frames):
-            print(f"Frame {i}: mean={np.mean(f):.2f}")
-            cv2.imwrite(os.path.join(output_dir, f"debug_frame_{i}.png"), frames[i])
-
-        #debug to validate there is a tonal difference between first and last frame
-        import matplotlib.pyplot as plt
-
-        # Compute difference between frame 0 and frame 15
-        diff = cv2.absdiff(frames[0], frames[15])  # Ensure frames[15] exists
-        plt.figure(figsize=(10, 6))
-        plt.imshow(diff, cmap='gray')
-        plt.title("Difference between Frame 0 and Frame 15")
-        plt.colorbar(label="Pixel Intensity Difference")
-
-        # Save to PDF
-        plt.savefig("debug_diff_frame0_vs_15.png", format='png')
-
-        # Optional: Close the plot to free memory
-        plt.close()
         return frames

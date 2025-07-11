@@ -58,38 +58,26 @@ class PrintingWindow(QWidget):
             if frame.dtype != np.uint8:
                 raise ValueError(f"Frame {i} must have dtype np.uint8, but got {frame.dtype}.")
 
-        self.frames = self._scale_frames_to_screen(frames)
-        self.current_frame = 0
-
         screen = QApplication.screens()[self.screen_index]
         self.windowHandle().setScreen(screen)
         self.setGeometry(screen.geometry())
         self.move(screen.geometry().topLeft())
 
+        self.screen_width = screen.geometry().width()
+        self.screen_height = screen.geometry().height()
+
+        if (self.screen_width, self.screen_height) == (7680, 4320):
+            # Sumopai screen — don't scale
+            self.frames = frames
+        else:
+            # Other display — scale and letterbox
+            self.frames = self._scale_frames_to_screen(frames)
+
+        self.current_frame = 0
         self.showFullScreen()
 
         QTimer.singleShot(100, self._begin_printing_frame_loop)
         self.stop_timer.start(int(duration * 1000))
-
-
-    def stop_printing(self):
-        self.timer.stop()
-        #debug showing a white frame - todo remove
-        #QTimer.singleShot(200, self.show_white_frame)
-        self.finished.emit()
-
-    def update_frame(self):
-        frame = self.frames[self.current_frame]
-        screen = self.windowHandle().screen()
-        screen_width = screen.geometry().width()
-        screen_height = screen.geometry().height()
-
-        h, w = frame.shape
-        stride = frame.strides[0]
-        qimage = QImage(frame.data, w, h, stride, QImage.Format.Format_Grayscale8)
-
-        self.image_label.setPixmap(QPixmap.fromImage(qimage))
-        self.current_frame = (self.current_frame + 1) % len(self.frames)
 
     def _scale_frames_to_screen(self, frames):
         """Resize and letterbox frames using OpenCV."""
@@ -110,28 +98,21 @@ class PrintingWindow(QWidget):
 
         return scaled_frames
 
-    def show_white_frame(self):
-        """Diagnostic: Display a pure white frame with gray marker and label."""
-        white = np.full((self.screen_height, self.screen_width), 255, dtype=np.uint8)
 
-        # Draw a mid-gray square in the center
-        square_size = min(self.screen_width, self.screen_height) // 6
-        center_x = self.screen_width // 2
-        center_y = self.screen_height // 2
-        top_left = (center_x - square_size // 2, center_y - square_size // 2)
-        bottom_right = (center_x + square_size // 2, center_y + square_size // 2)
-        cv2.rectangle(white, top_left, bottom_right, color=128, thickness=-1)
+    def stop_printing(self):
+        self.timer.stop()
+        self.finished.emit()
 
-        # Add label text
-        text = "WHITE FRAME"
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 2.0
-        thickness = 3
-        text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
-        text_x = (self.screen_width - text_size[0]) // 2
-        text_y = top_left[1] - 30  # above the square
-        cv2.putText(white, text, (text_x, text_y), font, font_scale, 0, thickness)  # black text
+    def update_frame(self):
+        frame = self.frames[self.current_frame]
+        screen = self.windowHandle().screen()
+        screen_width = screen.geometry().width()
+        screen_height = screen.geometry().height()
 
-        # Convert to QImage and display
-        qimage = QImage(white.data, white.shape[1], white.shape[0], white.shape[1], QImage.Format.Format_Grayscale8)
+        h, w = frame.shape
+        stride = frame.strides[0]
+        qimage = QImage(frame.data, w, h, stride, QImage.Format.Format_Grayscale8)
+
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
+        self.current_frame = (self.current_frame + 1) % len(self.frames)
+
