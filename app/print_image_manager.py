@@ -232,38 +232,74 @@ class PrintImageManager:
             
         return validation
 
-    def generate_dithered_frames_from_array(self, image_array: np.ndarray, target_width=7680, target_height=4320,
-                                            num_frames=16):
+    def generate_dithered_frames_from_array(
+            image_array: np.ndarray,
+            target_width=7680,
+            target_height=4320,
+            num_frames=16,
+            draw_frame_numbers: bool = True
+    ):
         """
-        Accepts a 16-bit grayscale NumPy array, pads it to target size,
-        and returns a list of 8-bit dithered frames simulating 12-bit output.
-        Frames are brightness-balanced to avoid flashing.
+        Pads a 16-bit grayscale image, simulates 12-bit dithered output as 8-bit frames.
+        Optionally draws frame numbers in a grey box rotating through screen corners.
         """
         assert isinstance(image_array, np.ndarray), "Input is not a NumPy array"
 
-        # Validate dimensions
         height, width = image_array.shape
         if height > target_height or width > target_width:
             raise ValueError(f"Image size {width}x{height} exceeds target {target_width}x{target_height}.")
 
-        # Create black canvas and center the image
         canvas = np.zeros((target_height, target_width), dtype=np.uint16)
         y_offset = (target_height - height) // 2
         x_offset = (target_width - width) // 2
         canvas[y_offset:y_offset + height, x_offset:x_offset + width] = image_array
 
-        # Convert to 12-bit (0–4095)
         image_12bit = (canvas >> 4).astype(np.uint16)
+        base = (image_12bit >> 4).astype(np.uint8)
+        remainder = image_12bit & 0xF
 
-        # Decompose into base 8-bit value and 4-bit remainder
-        base = (image_12bit >> 4).astype(np.uint8)  # Most significant 8 bits
-        remainder = image_12bit & 0xF  # 4-bit remainder (0–15)
-
-        # Generate 8-bit dithered frames with equalized brightness
         frames = []
         for f in range(num_frames):
             dithered = base.astype(np.uint16) + (remainder >= f).astype(np.uint16)
             clipped = np.clip(dithered, 0, 255).astype(np.uint8)
-            frames.append(clipped)
+
+            if draw_frame_numbers:
+                annotated = clipped.copy()
+
+                # Text settings
+                text = str(f)
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 2.5
+                thickness = 5
+                text_color = 0  # black text
+                bg_color = 192  # mid-grey background
+
+                # Measure text size
+                text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
+                box_w, box_h = text_size[0] + 20, text_size[1] + 20  # padding
+                box_coords = [
+                    (target_width - box_w, 0),  # top-right
+                    (target_width - box_w, target_height - box_h),  # bottom-right
+                    (0, target_height - box_h),  # bottom-left
+                    (0, 0),  # top-left
+                ]
+                corner = box_coords[f % 4]
+                box_x, box_y = corner
+
+                # Draw grey rectangle and frame number
+                cv2.rectangle(annotated, (box_x, box_y), (box_x + box_w, box_y + box_h), color=bg_color, thickness=-1)
+                cv2.putText(
+                    annotated,
+                    text,
+                    (box_x + 10, box_y + box_h - 10),
+                    font,
+                    font_scale,
+                    text_color,
+                    thickness,
+                    lineType=cv2.LINE_AA
+                )
+                frames.append(annotated)
+            else:
+                frames.append(clipped)
 
         return frames
