@@ -3,6 +3,7 @@
 This module handles image processing specifically optimized for printing on the
 secondary 7680x4320 display, focusing on quality and print-specific optimizations.
 """
+import os
 
 import cv2
 import numpy as np
@@ -231,36 +232,37 @@ class PrintImageManager:
             
         return validation
 
-    def generate_dithered_frames_from_tiff(self, image_16bit_pil, target_width=7680, target_height=4320, num_frames=16):
+    def generate_dithered_frames_from_array(
+            self,
+            image_array: np.ndarray,
+            target_width=7680,
+            target_height=4320,
+            num_frames=16,
+            draw_frame_numbers: bool = True
+    ):
         """
-        Accepts a 16-bit grayscale PIL Image, pads it to target size,
-        and returns a list of 8-bit frames simulating 12-bit output.
+        Pads a 16-bit grayscale image, simulates 12-bit dithered output as 8-bit frames.
+        Optionally draws frame numbers in a grey box rotating through screen corners.
         """
-        # Convert to NumPy array
-        image_array = np.array(image_16bit_pil)
+        assert isinstance(image_array, np.ndarray), "Input is not a NumPy array"
 
-        # Validate dimensions
         height, width = image_array.shape
         if height > target_height or width > target_width:
             raise ValueError(f"Image size {width}x{height} exceeds target {target_width}x{target_height}.")
 
-        # Create black canvas and center the image
         canvas = np.zeros((target_height, target_width), dtype=np.uint16)
         y_offset = (target_height - height) // 2
         x_offset = (target_width - width) // 2
         canvas[y_offset:y_offset + height, x_offset:x_offset + width] = image_array
 
-        # Convert to 12-bit (0–4095)
-        image_12bit = canvas.astype(np.uint32) >> 4
-
-        # Decompose into base 8-bit value and 4-bit remainder
+        image_12bit = (canvas >> 4).astype(np.uint16)
         base = (image_12bit >> 4).astype(np.uint8)
-        remainder = image_12bit & 0b1111
+        remainder = image_12bit & 0xF
 
-        # Generate 8-bit dithered frames
         frames = []
         for f in range(num_frames):
-            dithered = base + (remainder > f).astype(np.uint8)
-            frames.append(dithered)
+            dithered = base.astype(np.uint16) + (remainder >= f).astype(np.uint16)
+            clipped = np.clip(dithered, 0, 255).astype(np.uint8)
+            frames.append(clipped)
 
         return frames
