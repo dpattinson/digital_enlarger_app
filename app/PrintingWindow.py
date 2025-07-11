@@ -1,3 +1,5 @@
+import platform
+
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget, QApplication
@@ -80,9 +82,17 @@ class PrintingWindow(QWidget):
 
     def update_frame(self):
         frame = self.frames[self.current_frame]
-        h, w = frame.shape
-        stride = frame.strides[0]  # Get actual bytes per row
-        qimage = QImage(frame.data, w, h, stride, QImage.Format.Format_Grayscale8)
+
+        if platform.system() == "Darwin":  # macOS
+            # Convert grayscale to RGB
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+            h, w, _ = rgb_frame.shape
+            qimage = QImage(rgb_frame.data, w, h, 3 * w, QImage.Format.Format_RGB888)
+        else:
+            # Use native grayscale rendering for Windows/Linux
+            h, w = frame.shape
+            qimage = QImage(frame.data, w, h, w, QImage.Format.Format_Grayscale8)
+
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
         self.current_frame = (self.current_frame + 1) % len(self.frames)
 
