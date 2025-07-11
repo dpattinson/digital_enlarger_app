@@ -43,8 +43,8 @@ class DisplayWindow(QWidget):
 
         # Calculate interval per frame to achieve desired loop duration
         interval_per_frame = int(self.loop_duration_ms / len(self.frames))
-        if interval_per_frame <= 500:
-            interval_per_frame = 500 # Ensure at least 500ms interval
+        if interval_per_frame <= 0:
+            interval_per_frame = 1 # Ensure at least 500ms interval
 
         self.start_time = self.frame_timer.remainingTime() # Not accurate, but for simulation
         self.frame_timer.start(interval_per_frame)

@@ -181,9 +181,13 @@ class Controller:
             else:
                 # Normal mode: use fullscreen secondary monitor
                 frames_8bit = self.print_manager.generate_dithered_frames_from_tiff(print_ready_image)
+                print("generated array of 8bit frames:" + str(len(frames_8bit)))
                 self.display_window.set_frames(frames_8bit, loop_duration_ms)
+                print("set frames in display window")
                 self.display_window.show_on_secondary_monitor()
+                print("display window displayed")
                 self.display_window.start_display_loop()
+                print("display loop started")
                 self.main_window.add_log_entry("Print started on secondary monitor")
 
         except (ValueError, TypeError, RuntimeError) as e:
