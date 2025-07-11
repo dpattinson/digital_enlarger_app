@@ -81,7 +81,8 @@ class PrintingWindow(QWidget):
     def update_frame(self):
         frame = self.frames[self.current_frame]
         h, w = frame.shape
-        qimage = QImage(frame.data, w, h, w, QImage.Format.Format_Grayscale8)
+        stride = frame.strides[0]  # Get actual bytes per row
+        qimage = QImage(frame.data, w, h, stride, QImage.Format.Format_Grayscale8)
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
         self.current_frame = (self.current_frame + 1) % len(self.frames)
 
