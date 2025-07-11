@@ -45,6 +45,10 @@ class NewDisplayWindow(QWidget):
         qimage = QImage(black.data, self.screen_width, self.screen_height, self.screen_width, QImage.Format.Format_Grayscale8)
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
 
+    def _begin_loop(self):
+        """Start frame playback loop."""
+        self.timer.start(1000 // self.fps)
+
     def start_printing(self, frames: list[np.ndarray], duration: float):
         """Starts the printing sequence on screen[1] (MacBook display) without blanking external display."""
         self.frames = self._scale_frames_to_screen(frames)
