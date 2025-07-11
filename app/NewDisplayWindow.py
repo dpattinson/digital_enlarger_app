@@ -9,7 +9,7 @@ class NewDisplayWindow(QWidget):
 
     def __init__(self, screen_index=1, fps=25):
         super().__init__()
-
+        self.screen_index = screen_index  # 🔑 Store for later use
         self.setWindowTitle("Secondary Display - Darkroom Enlarger")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setStyleSheet("background-color: black;")
@@ -46,9 +46,16 @@ class NewDisplayWindow(QWidget):
         self.image_label.setPixmap(QPixmap.fromImage(qimage))
 
     def start_printing(self, frames: list[np.ndarray], duration: float):
-        """Starts printing loop with the given frames and duration (in seconds)."""
         self.frames = self._scale_frames_to_screen(frames)
         self.current_frame = 0
+
+        # Ensure the window appears on the secondary screen
+        screens = self.screen().virtualSiblings()
+        target_screen = screens[self.screen_index]  # Store screen_index in __init__
+        self.setScreen(target_screen)  # 🔑 Explicitly assign screen
+        self.setGeometry(target_screen.geometry())
+        self.move(target_screen.geometry().topLeft())
+
         self.showFullScreen()
         self.show_black_frame()
 
