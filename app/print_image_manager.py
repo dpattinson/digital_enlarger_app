@@ -3,6 +3,7 @@
 This module handles image processing specifically optimized for printing on the
 secondary 7680x4320 display, focusing on quality and print-specific optimizations.
 """
+import os
 
 import cv2
 import numpy as np
@@ -269,9 +270,11 @@ class PrintImageManager:
         #check frame 0 has white values in it
         white_region = frames[0][y_offset:y_offset + height, x_offset:x_offset + width]
         print(f"Frame 0: max in image area = {white_region.max()}, min = {white_region.min()}")
-        cv2.imwrite(f"debug_frame_0.png", frames[0])
 
         #check for frame brightness uniformity
+        output_dir = "debug_frames"
+        os.makedirs(output_dir, exist_ok=True)  # creates the directory if it doesn't exist
         for i, f in enumerate(frames):
             print(f"Frame {i}: mean={np.mean(f):.2f}")
+            cv2.imwrite(os.path.join(output_dir, f"debug_frame_{i}.png"), frames[i])
         return frames
