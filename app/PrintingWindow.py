@@ -77,9 +77,12 @@ class PrintingWindow(QWidget):
         QTimer.singleShot(100, self._begin_printing_frame_loop)
         self.stop_timer.start(int(duration * 1000))
 
+
     def stop_printing(self):
         self.timer.stop()
         self.show_black_frame()
+        #debug showing a white frame - todo remove
+        QTimer.singleShot(200, self.show_white_frame)
         self.finished.emit()
 
     def update_frame(self):
@@ -107,3 +110,16 @@ class PrintingWindow(QWidget):
             scaled_frames.append(letterboxed)
 
         return scaled_frames
+
+    def show_white_frame(self):
+        """Diagnostic method to display a pure white frame."""
+        white = np.full((self.screen_height, self.screen_width), 255, dtype=np.uint8)
+
+        # Option 1: Standard Grayscale
+        qimage = QImage(white.data, white.shape[1], white.shape[0], white.shape[1], QImage.Format.Format_Grayscale8)
+
+        # Option 2: If above shows black, force RGB conversion
+        # rgb_white = cv2.cvtColor(white, cv2.COLOR_GRAY2RGB)
+        # h, w, _ = rgb_white.shape
+        # qimage = QImage(rgb_white.data, w, h, 3 * w, QImage.Format.Format_RGB888)
+        self.image_label.setPixmap(QPixmap.fromImage(qimage))
