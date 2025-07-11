@@ -12,7 +12,7 @@ class PrintingWindow(QWidget):
         self.screen_index = screen_index
         self.setWindowTitle("Secondary Display - Darkroom Enlarger")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
-        self.setStyleSheet("background-color: black;")
+        self.setStyleSheet("background-color: white;")
 
         self.layout = QVBoxLayout(self)
         self.image_label = QLabel()
