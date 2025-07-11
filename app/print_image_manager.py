@@ -269,6 +269,7 @@ class PrintImageManager:
         #check frame 0 has white values in it
         white_region = frames[0][y_offset:y_offset + height, x_offset:x_offset + width]
         print(f"Frame 0: max in image area = {white_region.max()}, min = {white_region.min()}")
+        cv2.imwrite(f"debug_frame_0.png", frames[0])
 
         #check for frame brightness uniformity
         for i, f in enumerate(frames):
