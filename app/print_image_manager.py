@@ -244,6 +244,8 @@ class PrintImageManager:
         height, width = image_array.shape
         if height > target_height or width > target_width:
             raise ValueError(f"Image size {width}x{height} exceeds target {target_width}x{target_height}.")
+        #check that the image has full tone range
+        print(f"image_array max={image_array.max()}, min={image_array.min()}")
 
         # Create black canvas and center the image
         canvas = np.zeros((target_height, target_width), dtype=np.uint16)
