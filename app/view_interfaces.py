@@ -9,14 +9,14 @@ from typing import Optional, Protocol
 class IFileDialog(Protocol):
     """Interface for file dialog operations."""
     
-    def get_open_filename(self, parent, title: str, directory: str, filter: str) -> tuple[str, str]:
+    def get_open_filename(self, parent, title: str, directory: str, file_filter: str) -> tuple[str, str]:
         """Show open file dialog.
         
         Args:
             parent: Parent widget.
             title: Dialog title.
             directory: Initial directory.
-            filter: File filter string.
+            file_filter: File filter string.
             
         Returns:
             Tuple of (selected_file_path, selected_filter).
@@ -48,9 +48,9 @@ class QtFileDialog:
         from PyQt6.QtWidgets import QFileDialog
         self.QFileDialog = QFileDialog
     
-    def get_open_filename(self, parent, title: str, directory: str, filter: str) -> tuple[str, str]:
+    def get_open_filename(self, parent, title: str, directory: str, file_filter: str) -> tuple[str, str]:
         """Show Qt open file dialog."""
-        return self.QFileDialog.getOpenFileName(parent, title, directory, filter)
+        return self.QFileDialog.getOpenFileName(parent, title, directory, file_filter)
 
 
 class MockFileDialog:
@@ -65,16 +65,16 @@ class MockFileDialog:
         self.return_path = return_path
         self.call_history = []
     
-    def get_open_filename(self, parent, title: str, directory: str, filter: str) -> tuple[str, str]:
+    def get_open_filename(self, parent, title: str, directory: str, file_filter: str) -> tuple[str, str]:
         """Mock file dialog that returns predetermined path."""
         self.call_history.append({
             'title': title,
             'directory': directory,
-            'filter': filter
+            'file_filter': file_filter
         })
         
         if self.return_path:
-            return (self.return_path, filter)
+            return (self.return_path, file_filter)
         else:
             return ("", "")
 
