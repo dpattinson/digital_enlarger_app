@@ -3,7 +3,6 @@
 This module handles image processing specifically optimized for printing on the
 secondary 7680x4320 display, focusing on quality and print-specific optimizations.
 """
-import os
 
 import cv2
 import numpy as np

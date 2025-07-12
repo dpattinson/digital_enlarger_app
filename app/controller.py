@@ -19,7 +19,7 @@ class Controller:
             main_window: The main application window (MainWindow instance).
         """
         self.main_window = main_window
-        self.lut_manager = LUTManager(os.path.join(os.path.dirname(__file__), "..", "luts"))
+        self.lut_manager = LUTManager()
         self.image_processor = ImageProcessor()
         self.printing_window = PrintingWindow()
         self.test_display_window = TestDisplayWindow()

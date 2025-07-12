@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 
 
+# noinspection PyUnresolvedReferences
 class PrintingWindow(QWidget):
     """
     A full-screen window used to display a sequence of 8-bit grayscale frames

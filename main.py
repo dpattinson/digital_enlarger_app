@@ -4,6 +4,7 @@ import os
 # Add the app directory to sys.path for both bundled and unbundled execution
 if getattr(sys, 'frozen', False):
     # Running as a PyInstaller bundle
+    # noinspection PyUnresolvedReferences
     base_path = sys._MEIPASS
 else:
     # Running in a regular Python environment
