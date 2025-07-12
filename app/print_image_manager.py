@@ -20,6 +20,9 @@ class PrintImageManager:
     # 8K display dimensions
     DISPLAY_WIDTH = 7680
     DISPLAY_HEIGHT = 4320
+
+    # Period of time within which to cycle the frame array
+    loop_duration_ms = 1000
     
     def __init__(self, cv2_rotate=None, cv2_bitwise_not=None):
         """Initialize the PrintImageManager.

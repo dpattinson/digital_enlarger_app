@@ -167,10 +167,11 @@ class Controller:
             exposure_duration_str = self.main_window.exposure_input.text()
             try:
                 exposure_duration_s = float(exposure_duration_str)
-                loop_duration_ms = int(exposure_duration_s * 1000)
+                exposure_duration_ms = int(exposure_duration_s * 1000)
             except ValueError:
                 self.main_window.add_log_entry("Invalid exposure duration. Using default 30s.")
-                loop_duration_ms = 30000  # Default to 30 seconds
+                exposure_duration_ms = 30000
+
 
             # Configure and start display based on test mode
             if self.main_window.is_test_mode_enabled():
@@ -183,16 +184,9 @@ class Controller:
                 print("about to generate array of 8bit frames")
                 assert isinstance(print_ready_image, np.ndarray), "Input is not a NumPy array"
                 frames_8bit = self.print_manager.generate_dithered_frames_from_array(print_ready_image)
-                #print("generated array of 8bit frames:" + str(len(frames_8bit)))
-                #self.display_window.set_frames(frames_8bit, loop_duration_ms)
-                #print("set frames in display window")
-                #self.display_window.show_on_secondary_monitor()
-                #print("display window displayed")
-                #self.display_window.start_display_loop()
-                #print("display loop started")
                 self.printing_window.finished.connect(lambda: print("Printing complete."))
                 self.printing_window.show()
-                self.printing_window.start_printing(frames_8bit, 10)
+                self.printing_window.start_printing(frames_8bit, exposure_duration_ms)
                 self.main_window.add_log_entry("Print started on secondary monitor")
 
         except (ValueError, TypeError, RuntimeError) as e:
